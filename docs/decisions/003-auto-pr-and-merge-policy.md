@@ -31,5 +31,5 @@ pi には作業を最後まで任せたい。一方で、既定ブランチへ�
 
 ## 関連
 
-- 今の実装：[features/git-guard.md](../features/git-guard.md)、[features/pr-skill.md](../features/pr-skill.md)
+- 今の実装：[features/harness-guards.md](../features/harness-guards.md)、[features/pr-skill.md](../features/pr-skill.md)
 - 取り込み後の実装：[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)

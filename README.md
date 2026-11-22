@@ -7,7 +7,7 @@ Pi coding agent の個人設定と拡張を置くリポジトリです。`agent/
 | 機能 | 内容 | 詳細 |
 | --- | --- | --- |
 | 利用状況 | フッターに Codex（5時間・週）と OpenCode Go（5時間・週・月）の使用率、Anthropic API ではこのセッションの使用額を出します。`/usage` でまとめて表示します | [docs/features/usage.md](docs/features/usage.md) |
-| git-guard | 既定ブランチへの commit・push、force push、push での削除、`--no-verify` を止めます。PR のマージは、依頼したときだけ確認ダイアログを出します | [docs/features/git-guard.md](docs/features/git-guard.md) |
+| ハーネスのガード | bash・ファイルツールの実行前に判定し、既定ブランチへの commit・push、force push、`--no-verify`、履歴や作業ツリーを壊す git 操作、プロジェクトの外へのインストール、範囲外の削除、秘密情報の読み取りを、確認ダイアログなしで止めます（必要ならユーザーが `!` で実行します）。出力のトークン類は `[秘匿]` にします。PR のマージは、依頼したときだけ確認ダイアログを出します | [docs/features/harness-guards.md](docs/features/harness-guards.md) |
 | /exit | `/quit` と同じ終了処理を `/exit` でも呼べます | [docs/features/exit.md](docs/features/exit.md) |
 | pr スキル | 作業が終わったら、目的ごとにコミットして PR を作ります（マージはしません） | [docs/features/pr-skill.md](docs/features/pr-skill.md) |
 | git-pull スキル | `/skill:git-pull` で、カレントディレクトリのリポジトリ（外なら配下 3 階層まで）をデフォルトブランチに切り替えて fast-forward で最新にします | [docs/features/git-pull-skill.md](docs/features/git-pull-skill.md) |
