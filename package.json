@@ -16,7 +16,7 @@
     "extensions": [
       "./agent/extensions/usage/index.ts",
       "./agent/extensions/exit/index.ts",
-      "./agent/extensions/git-guard/index.ts"
+      "./agent/extensions/harness/index.ts"
     ],
     "skills": [
       "./agent/skills"

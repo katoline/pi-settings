@@ -24,7 +24,7 @@
 | `tool_call` | ガード | 実行前に呼ばれる。`{ block: true, reason }` で止める。`event.input` を書き換えられる。**フックが例外を投げるとツールは実行される**ので、判定は try/catch で拒否に倒す |
 | `tool_result` | 出力の秘匿 | ツールの結果を書き換えられる |
 | `input` | マージ依頼の判定 | ユーザーの生の入力（`/skill:…` の展開前）。`event.source`（`interactive` / `rpc` / `extension`）、`event.streamingBehavior`（待機中は `undefined`） |
-| `user_bash` | — | ユーザーが `!` で実行するコマンド。`tool_call` は通らない（決定 005 の前提。実装時に確認） |
+| `user_bash` | — | ユーザーが `!` / `!!` で実行するコマンド。**`tool_call` は通らない**（2026-11-23 に確認。ガードの対象外で、決定 005 の前提が成り立つ）。拡張は `user_bash` で横取りできるが、ハーネスは何も登録しない。確認した場所：`dist/modes/interactive/interactive-mode.js` の `handleBashCommand`（`emitUserBash` → `session.executeBash`）と `dist/core/agent-session.js` の `executeBash`（`tool_call` を出さずに実行）。`tool_call` を出すのは `_beforeToolCall`（モデルのツール呼び出し）だけ。docs/extensions.md の「User Bash Events」にも `!` は `user_bash` とある |
 | `before_agent_start` | 固定の指示 | `systemPromptOptions.sections.<名前>` に名前つきセクションを差し込める |
 | `agent_before_settle` | 自律ループ | 止まる直前に呼ばれ、継続を要求できる |
 | `message_end` | 完了の合図・使用額 | 確定したメッセージ。書き換えられる |
