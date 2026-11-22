@@ -5,13 +5,13 @@ import { hasSuccessfulWrite } from "../subagent/child.ts";
 import { withFinalLine } from "./final-line.ts";
 
 /** 成功すると成果物ができるツール */
-const ARTIFACT_TOOLS = new Set(["write", "edit"]);
-/** 成果物を作る bash コマンド（commit・push・PR の作成。`git -C <dir>` 形式も含む） */
-const ARTIFACT_COMMAND = /\b(?:git\s+(?:-C\s+\S+\s+)?(?:commit|push)|gh\s+pr\s+create)\b/;
+const ARTIFACT_TOOLS = new Set(["write", "edit", "harness_pr_create", "harness_pr_merge"]);
+/** 成果物を作る bash コマンド（commit・push。`git -C <dir>` 形式も含む。PR の作成は `harness_pr_create`、マージは `harness_pr_merge`） */
+const ARTIFACT_COMMAND = /\b(?:git\s+(?:-C\s+\S+\s+)?(?:commit|push))\b/;
 
 /**
  * 作業が完了したら、最終応答の最後の 1 行を「🚀作業が完了しました！」にする。
- * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、書き込み可のサブエージェントの成功、commit、push、PR の作成）が成功したこと、
+ * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、書き込み可のサブエージェントの成功、commit、push、`harness_pr_create`・`harness_pr_merge` の成功）が成功したこと、
  * またはその依頼の中で計画の完了報告（`plan_report`）を出したこと。
  * ただし、確定した計画を自律で進めている間（未完了で、一時停止していない）は付けない。
  * モデルの書き忘れには頼らず、確定したメッセージを、ハーネスが書き換える。

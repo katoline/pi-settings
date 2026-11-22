@@ -31,5 +31,6 @@ pi には作業を最後まで任せたい。一方で、既定ブランチへ�
 
 ## 関連
 
-- 今の実装：[features/harness-guards.md](../features/harness-guards.md)、[features/pr-skill.md](../features/pr-skill.md)
-- 取り込み後の実装：[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)
+- 実装：[features/harness-pr.md](../features/harness-pr.md)（`harness_pr_create`・`harness_pr_merge`）、[features/harness-guards.md](../features/harness-guards.md)
+- 計画：[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)
+- 補足：[012](012-merge-gate-without-plan.md)（計画が無いときのマージのゲート。マージ後にブランチを消さない）

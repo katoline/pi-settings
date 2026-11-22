@@ -213,25 +213,44 @@ test("worktree remove は、絶対パスで --force なしのときだけ許可"
   assert.equal(kind(git("git worktree remove /w/a")), "allow");
 });
 
-// 方針の違い（決定 003）: 移植元は gh pr create / edit / merge を専用ツールへ誘導して拒否するが、
-// 専用ツールはフェーズ 5。ここでは create / edit は許可し、merge は依頼ゲート（kind: "merge"）にする
-test("gh pr create / view / list / edit は許可、merge は依頼ゲート", () => {
-  for (const cmd of [
-    "gh pr create --title x",
-    "gh pr create --base main --title x --body y",
-    "gh pr edit 1 --body y",
-    "gh pr view 1",
-    "gh pr checks 1",
-    "gh pr list",
-  ]) {
+// 方針（決定 003）: bash からの PR の作成・更新・マージは、依頼の有無にかかわらず常に拒否し、専用ツールへ誘導する
+// （フェーズ 1 の暫定の依頼ゲート（kind: "merge" と確認ダイアログ）を置き換えた）
+test("gh pr view / list / checks は許可", () => {
+  for (const cmd of ["gh pr view 1", "gh pr checks 1", "gh pr list", "gh pr diff 1"]) {
     assert.equal(kind(gh(cmd)), "allow", cmd);
   }
+});
+
+test("gh pr merge と gh api でのマージは常に拒否し、harness_pr_merge へ誘導する", () => {
   for (const cmd of [
     "gh pr merge 12 --squash",
     "gh pr merge",
+    "gh pr merge 12 --merge --delete-branch",
     "gh api -X PUT repos/a/b/pulls/12/merge",
+    "gh api repos/a/b/pulls/12/merge",
+    "gh api --method PUT repos/a/b/pulls/12/merge -f merge_method=squash",
   ]) {
-    assert.equal(kind(gh(cmd)), "merge", cmd);
+    const v = gh(cmd);
+    assert.equal(kind(v), "block", cmd);
+    assert.match(v.kind === "block" ? v.reason : "", /harness_pr_merge/, cmd);
+  }
+});
+
+test("gh pr create / edit と gh api での PR の作成・更新は拒否し、harness_pr_create へ誘導する", () => {
+  for (const cmd of [
+    "gh pr create --title x",
+    "gh pr create --base main --title x --body y",
+    // `new` は `create` の別名
+    "gh pr new --title x",
+    "gh pr new --base main --title x --body y",
+    "gh pr edit 1 --body y",
+    "gh api -X POST repos/a/b/pulls -f title=x -f head=feat/x -f base=main",
+    "gh api repos/a/b/pulls -f title=x",
+    "gh api -X PATCH repos/a/b/pulls/12 -f title=y",
+  ]) {
+    const v = gh(cmd);
+    assert.equal(kind(v), "block", cmd);
+    assert.match(v.kind === "block" ? v.reason : "", /harness_pr_create/, cmd);
   }
 });
 
@@ -245,6 +264,7 @@ test("gh api は GET だけ許可", () => {
 
 test("gh のサブエージェントからの PR 書き込みと、危険なグループは拒否", () => {
   assert.equal(kind(gh("gh pr create --title x", { subagent: true })), "block");
+  assert.equal(kind(gh("gh pr new --title x", { subagent: true })), "block");
   assert.equal(kind(gh("gh pr comment 1 --body x", { subagent: true })), "block");
   assert.equal(kind(gh("gh pr view 1", { subagent: true })), "allow");
   assert.equal(kind(gh("gh secret set X")), "block");
@@ -348,7 +368,6 @@ const allowed = [
   "git push origin HEAD",
   "git commit -m x",
   'git commit -m "fix -n handling"',
-  "gh pr create --title x",
   "gh pr view 1",
   "git log --oneline",
   "git status && git diff",
@@ -359,19 +378,18 @@ for (const cmd of allowed) {
   test(`allow: ${cmd}`, async () => assert.equal((await run(cmd)).kind, "allow"));
 }
 
-test("merge（依頼ゲート）: gh pr merge / gh api .../merge", async () => {
+test("gh pr merge / gh api .../merge / gh pr create は、コマンドの組み合わせの中でも拒否する", async () => {
   for (const cmd of [
     "gh pr merge 12 --squash",
-    "gh pr merge",
     "gh api -X PUT repos/a/b/pulls/12/merge",
     "git status && gh pr merge 3",
     "bash -c 'gh pr merge 3'",
+    "gh pr create --title x",
+    "git push -u origin feat/x && gh pr create --title x",
+    "git push -u origin feat/x && gh pr new --title x",
   ]) {
-    assert.equal((await run(cmd)).kind, "merge", cmd);
+    assert.equal((await run(cmd)).kind, "block", cmd);
   }
-});
-test("block が merge より優先される", async () => {
-  assert.equal((await run("gh pr merge 1 && git push -f")).kind, "block");
 });
 
 test("cd と -C で、git の状態を取る作業ディレクトリが変わる", async () => {

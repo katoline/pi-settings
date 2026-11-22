@@ -30,7 +30,7 @@ test("通常の開発コマンドは許可", async () => {
   }
 });
 
-test("普段の作業（作業ブランチでの commit・push、PR 作成、ローカルの npm install、削除）は止まらない", async () => {
+test("普段の作業（作業ブランチでの commit・push、ローカルの npm install、削除）は止まらない", async () => {
   for (const cmd of [
     "git add -A",
     'git commit -m "feat: 追加"',
@@ -40,15 +40,12 @@ test("普段の作業（作業ブランチでの commit・push、PR 作成、ロ
     "git push -u origin feat/x 2>&1 | tail -5",
     // 本体に引用符・括弧があるヒアドキュメント（`$( )` の中）
     "git commit -m \"$(cat <<'EOF'\nfix: it's a test\nEOF\n)\"",
-    "gh pr create --title t --body \"$(cat <<'EOF'\n## Summary\n1) first\nEOF\n)\"",
     'git commit -m "$(cat <<EOF\nfix (a)\nEOF\n)"',
     'git commit -m "$(cat <<-EOF\n\tfix: it\'s\n\tEOF\n)"',
     'git commit -m "$(cat <<"EOF"\nfix: it\'s\nEOF\n)"',
-    "gh pr create --base main --title 'feat: x' --body \"$(cat <<'EOF'\nbody\nEOF\n)\"",
     "gh pr view 1",
     "gh pr view --json title,body",
     "gh pr list --head feat/x --state open --json number,url",
-    "gh pr edit 1 --title x",
     "git fetch origin && git switch -c feat/y origin/main",
     "npm install",
     "npm install lodash",

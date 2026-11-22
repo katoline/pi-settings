@@ -47,13 +47,15 @@ export function renderReport(plan: Plan): string {
   const lr = latestReview(plan);
   if (lr && !lr.approved) lines.push("- 最後のレビューは承認されていません。");
 
-  // PR の記録（`plan.prs`）はフェーズ 5 の PR のツールが入れる。記録があるときだけ欄を出す
+  // PR の記録（`plan.prs`）は `harness_pr_create`・`harness_pr_merge` が入れる。記録があるときだけ欄を出す
   if (plan.prs.length > 0) {
     lines.push("", "## PR");
-    for (const pr of plan.prs)
+    for (const pr of plan.prs) {
       lines.push(
         `- #${pr.number} ${pr.title} — ${pr.merged ? "マージ済み" : "未マージ"} ${pr.url}`,
       );
+      if (pr.warning) lines.push(`  - 注意: ${pr.warning}`);
+    }
   }
 
   lines.push("", "## 自分で判断したこと");

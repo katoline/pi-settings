@@ -11,7 +11,7 @@ Pi coding agent の個人設定と拡張を置くリポジトリ。このファ�
 - `agent/agents/<役割>.md`：サブエージェントの役割の定義（`harness` 拡張の `subagent` ツールが `~/.pi/agent/agents/` から読む。`name`・`description`・`tools` の先頭部と本文）
 - `agent/skills/<名前>/SKILL.md`：Pi のスキル
 - `agent/settings.json`：Pi のユーザー設定。Pi 自身も書き換える（モデルの切り替えなど）ので、その差分は意図したものだけコミットする
-- `agent/extensions/harness/instructions/main.md`・`agent/skills/pr`・`agent/extensions/harness/guards`（ガード）は同じ運用（作業ごとに PR を自動作成し、マージは依頼されたときだけ）を支えるので、どれかを変えたら他との食い違いを確認する
+- `agent/extensions/harness/instructions/main.md`・`agent/extensions/harness/flow/pr-tools.ts`（PR の作成・マージのツール）・`agent/extensions/harness/guards`（ガード）は同じ運用（作業ごとに PR を自動作成し、マージは依頼されたときだけ）を支えるので、どれかを変えたら他との食い違いを確認する
 
 ## ドキュメント（docs/）
 

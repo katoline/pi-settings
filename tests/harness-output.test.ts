@@ -96,7 +96,8 @@ test("成果物を作る操作の後の最終応答にだけ付く", async () =>
     ["bash", { command: "git commit -m x" }],
     ["bash", { command: "git -C /repo commit -m x" }],
     ["bash", { command: "git push -u origin feat/x" }],
-    ["bash", { command: "gh pr create --title x" }],
+    ["harness_pr_create", { title: "x" }],
+    ["harness_pr_merge", {}],
   ] as const) {
     const h = setup();
     await h.start();
@@ -114,7 +115,7 @@ test("前の依頼で編集し、新しい依頼で commit・push・PR 作成だ
   assert.equal(await h.end(msg("答え")), undefined);
   await h.tool("bash", { command: "git commit -m x" });
   await h.tool("bash", { command: "git push" });
-  await h.tool("bash", { command: "gh pr create --title x" });
+  await h.tool("harness_pr_create", { title: "x" });
   assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
 });
 
@@ -126,6 +127,9 @@ test("質問への回答だけ・読むだけ・失敗した操作では付か�
   await h.tool("bash", { command: "git status" });
   await h.tool("write", {}, true);
   await h.tool("bash", { command: "git commit -m x" }, true);
+  // PR のツールの拒否・失敗（isError）も、成果物を作る操作に数えない
+  await h.tool("harness_pr_create", { title: "x" }, true);
+  await h.tool("harness_pr_merge", {}, true);
   assert.equal(await h.end(msg("答え")), undefined);
 });
 

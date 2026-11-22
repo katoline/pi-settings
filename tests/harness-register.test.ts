@@ -38,17 +38,11 @@ const ctxWith = (answer: boolean, hasUI = true) => ({
     },
   },
 });
-const userInput = (text: string, extra: object = {}) => ({
-  type: "input",
-  text,
-  source: "interactive",
-  ...extra,
-});
 
 test("普段のコマンドは通り、確認ダイアログも出ない", async () => {
   const { call } = setup();
   confirms.length = 0;
-  for (const cmd of ["git commit -m x", "git push -u origin feat/x", "gh pr create --title x"]) {
+  for (const cmd of ["git commit -m x", "git push -u origin feat/x", "gh pr view 3"]) {
     assert.equal(await call("tool_call")(bashCall(cmd), ctxWith(true)), undefined, cmd);
   }
   assert.equal(confirms.length, 0);
@@ -63,51 +57,23 @@ test("危ない操作は、確認ダイアログを出さずに拒否し、`!` �
   assert.equal(confirms.length, 0);
 });
 
-test("マージ: 依頼が無ければ、ダイアログを出さずに拒否", async () => {
+// フェーズ 5: bash からの PR の作成・更新・マージは、依頼の有無にかかわらず、確認ダイアログを出さずに拒否する。
+// マージの依頼の判定と確認ダイアログは harness_pr_merge（tests/harness-pr.test.ts）
+test("bash からのマージ・PR の作成は、確認ダイアログを出さずに拒否する（ガードは入力の依頼を見ない）", async () => {
   const { call } = setup();
   confirms.length = 0;
-  const r = await call("tool_call")(bashCall("gh pr merge 3 --squash"), ctxWith(true));
-  assert.equal(r?.block, true);
+  // ガードは `input` を購読しない（依頼の判定は harness_pr_merge 側）
+  assert.equal(call("input"), undefined);
+  for (const cmd of [
+    "gh pr merge 3 --squash",
+    "gh api -X PUT repos/a/b/pulls/3/merge",
+    "gh pr create --title x",
+  ]) {
+    const r = await call("tool_call")(bashCall(cmd), ctxWith(true));
+    assert.equal(r?.block, true, cmd);
+    assert.match(r?.reason ?? "", /harness_pr_(merge|create)/);
+  }
   assert.equal(confirms.length, 0);
-});
-
-test("マージ: 依頼があれば確認ダイアログを出し、許可されたら通す・拒否されたら止める", async () => {
-  const { call } = setup();
-  await call("input")(userInput("PR 3 をマージして"), {});
-  confirms.length = 0;
-  assert.equal(
-    await call("tool_call")(bashCall("gh pr merge 3 --squash"), ctxWith(true)),
-    undefined,
-  );
-  assert.equal(confirms.length, 1);
-  const denied = await call("tool_call")(
-    bashCall("gh api -X PUT repos/a/b/pulls/3/merge"),
-    ctxWith(false),
-  );
-  assert.equal(denied?.block, true);
-  assert.equal(confirms.length, 2);
-});
-
-test("マージ: 依頼があっても UI が無ければ拒否", async () => {
-  const { call } = setup();
-  await call("input")(userInput("merge it"), {});
-  const r = await call("tool_call")(bashCall("gh pr merge 3"), ctxWith(true, false));
-  assert.equal(r?.block, true);
-});
-
-test("マージの依頼: 拡張が送った入力は数えない。待機中の入力は置き換え、実行中の追加入力は足す", async () => {
-  const { call } = setup();
-  const merge = () => call("tool_call")(bashCall("gh pr merge 3"), ctxWith(true));
-  await call("input")(userInput("マージして", { source: "extension" }), {});
-  assert.equal((await merge())?.block, true);
-  await call("input")(userInput("マージして"), {});
-  assert.equal(await merge(), undefined);
-  // 実行中の追加入力は足すだけ（依頼は消えない）
-  await call("input")(userInput("typo も直して", { streamingBehavior: "steer" }), {});
-  assert.equal(await merge(), undefined);
-  // 待機中の新しい入力は置き換える
-  await call("input")(userInput("README を直して"), {});
-  assert.equal((await merge())?.block, true);
 });
 
 test("fail-closed: 判定中に例外が起きたら拒否する", async () => {

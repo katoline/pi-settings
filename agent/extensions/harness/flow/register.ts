@@ -32,14 +32,15 @@ import {
   type UpdateInput,
   updateItem,
 } from "./plan.ts";
+import { type PrDeps, registerPrTools } from "./pr-tools.ts";
 import { renderReport } from "./report.ts";
 import { buildRereviewNote, buildReviewTask, parseVerdict } from "./review.ts";
+import { ASK_USER, syncActiveTools } from "./tools.ts";
 import { isOnPath, resolveVerifyCommands, summarizeOutput } from "./verify.ts";
 
 const PLAN_ENTRY = "harness-plan";
 /** 計画の状態をモデルに渡すカスタムメッセージの種類（システムプロンプトには載せない） */
 export const PLAN_STATE_MESSAGE = "harness-plan-state";
-const ASK_USER = "ask_user";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }], details: undefined });
 const outcomeText = (o: { result: { content: { type: string; text?: string }[] } }) =>
@@ -54,6 +55,8 @@ export interface FlowDeps {
   runTasks?: typeof runSubagentTasks;
   /** `nix` が PATH にあるか(`harness_verify` の devShell の判定) */
   nixOnPath?: () => boolean;
+  /** PR のツールの、CI を待つ間隔と上限 */
+  pr?: PrDeps;
 }
 
 /**
@@ -80,14 +83,7 @@ export function registerFlow(pi: ExtensionAPI, rt: Runtime, deps: FlowDeps = {})
   let completionPrompted = false;
 
   // ---- 状態の保存・復元 ----
-  function syncTools() {
-    const active = pi.getActiveTools();
-    const autonomous = isAutonomous(rt.plan);
-    const has = active.includes(ASK_USER);
-    // 確定後は、質問のツールを外す(質問せずに進める)。完了後・一時停止中・計画なしでは戻す
-    if (autonomous && has) pi.setActiveTools(active.filter((n) => n !== ASK_USER));
-    if (!autonomous && !has) pi.setActiveTools([...active, ASK_USER]);
-  }
+  const syncTools = () => syncActiveTools(pi, rt);
 
   function showStatus(ctx: ExtensionContext) {
     const plan = rt.plan;
@@ -140,6 +136,9 @@ export function registerFlow(pi: ExtensionAPI, rt: Runtime, deps: FlowDeps = {})
     });
   }
 
+  // ---- PR の作成・マージ ----
+  registerPrTools(pi, rt, { save, fingerprint }, deps.pr);
+
   // ---- Plan: 確認と確定 ----
   pi.registerTool({
     name: ASK_USER,
@@ -170,7 +169,7 @@ export function registerFlow(pi: ExtensionAPI, rt: Runtime, deps: FlowDeps = {})
     name: "plan_propose",
     label: "計画を提出",
     description:
-      "ファイルを変更する依頼で、要件と判断をユーザーと確認し終えたら、完了条件つきのチェックリストを提出する(質問への回答だけの依頼では使わない)。付随作業(検証、独立レビュー、記録や README、PR)も項目に入れる。マージは、ユーザーが依頼に含めたときだけ項目に入れる。ユーザーが確定すると、以後は、質問せずに完了まで進める。",
+      "ファイルを変更する依頼で、要件と判断をユーザーと確認し終えたら、完了条件つきのチェックリストを提出する(質問への回答だけの依頼では使わない)。付随作業(検証、独立レビュー、記録や README、PR の作成 = harness_pr_create)も項目に入れる。マージ(harness_pr_merge)は、ユーザーが依頼に含めたときだけ項目に入れ、計画の最後に置く(着手時に in_progress にしてから harness_pr_merge を呼び、マージが済んだら、その結果を根拠に done にする)。ユーザーが確定すると、以後は、質問せずに完了まで進める。",
     parameters: Type.Object({
       goal: Type.String({ description: "目的(1〜2 文)" }),
       items: Type.Array(
@@ -622,6 +621,10 @@ export function registerFlow(pi: ExtensionAPI, rt: Runtime, deps: FlowDeps = {})
           return;
         }
         const resumed = resumePlan(plan, Date.now());
+        // 再開の実行は input を通らない。実行が始まらなかった依頼(認証切れなど)や拒否の記録を
+        // 持ち越さないよう、マージの依頼を戻す(ツール一覧は save の syncActiveTools で直る)
+        rt.mergeRequested = false;
+        rt.mergeDeclined = false;
         save(resumed, ctx);
         pi.sendMessage(
           {
