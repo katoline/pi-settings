@@ -11,3 +11,4 @@
 | [linking.md](linking.md) | `~/.pi/agent` からリポジトリへのシンボリックリンク（何を・どう張っているか） |
 | [settings.md](settings.md) | `agent/settings.json` のキーと、pi が書き換える場面 |
 | [providers.md](providers.md) | Codex・OpenCode Go・Anthropic API の認証と、利用状況の取得元 |
+| [development.md](development.md) | 開発環境（devShell・direnv・`npm run check`）、CI、Dependabot、ブランチ自動削除 |
