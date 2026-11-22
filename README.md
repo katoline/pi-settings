@@ -1,10 +1,10 @@
 # pi-settings
 
-Pi coding agent の個人設定と拡張を置くリポジトリです。ここで実装し、あとから `~/.pi/agent` へシンボリックリンクして使います。リンクはまだ張っていません。
+Pi coding agent の個人設定と拡張を置くリポジトリです。`agent/` は Pi のエージェントディレクトリ `~/.pi/agent` と同じ構成にしてあり、中身を `~/.pi/agent` 配下へシンボリックリンクして使います。いま張っているのは `AGENTS.md` だけで、拡張のリンクはまだ張っていません。
 
 ## 利用状況
 
-`extensions/usage` がフッターに次を出します。
+`agent/extensions/usage` がフッターに次を出します。
 
 | プロバイダー | 表示 |
 | --- | --- |
@@ -24,14 +24,27 @@ Pi に保存された資格情報は Pi の `getProviderAuth` 経由で取得す
 
 ## /exit
 
-`extensions/exit` は `/quit` と同じ終了処理を `/exit` でも呼べるようにします。エージェントの実行中は、終わってから終了します。
+`agent/extensions/exit` は `/quit` と同じ終了処理を `/exit` でも呼べるようにします。エージェントの実行中は、終わってから終了します。
+
+## 指示ファイル
+
+| ファイル | 効く範囲 |
+| --- | --- |
+| `agent/AGENTS.md` | Pi のグローバル指示。`~/.pi/agent/AGENTS.md` からシンボリックリンクで参照し、どのディレクトリで Pi を使っても読み込まれる |
+| `AGENTS.md`（`CLAUDE.md` はこれへのリンク） | このリポジトリで作業するときだけの指示 |
+
+グローバル指示は次のリンクで有効にしています（張り済み）。編集後は Pi で `/reload` すると反映されます。
+
+```sh
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/AGENTS.md ~/.pi/agent/AGENTS.md
+```
 
 ## あとから有効にする
 
 ```sh
 mkdir -p ~/.pi/agent/extensions
-ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/extensions/usage ~/.pi/agent/extensions/usage
-ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/extensions/exit ~/.pi/agent/extensions/exit
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/extensions/usage ~/.pi/agent/extensions/usage
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/extensions/exit ~/.pi/agent/extensions/exit
 ```
 
 Pi を開き直すか `/reload` すると読み込まれます。

@@ -5,6 +5,6 @@
   "type": "module",
   "description": "Personal Pi coding agent settings and extensions",
   "pi": {
-    "extensions": ["./extensions/usage/index.ts", "./extensions/exit/index.ts"]
+    "extensions": ["./agent/extensions/usage/index.ts", "./agent/extensions/exit/index.ts"]
   }
 }
