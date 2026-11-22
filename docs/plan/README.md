@@ -27,7 +27,7 @@
 | 1 | [phase-1-guards.md](phase-1-guards.md) | ガード（シェル解析・git・削除・インストール・秘密情報・出力の秘匿） | 完了（2026-11-23） | 0 |
 | 2 | [phase-2-instructions-output.md](phase-2-instructions-output.md) | 固定の指示（`<harness>` セクション）と完了の合図 | 完了（2026-11-23） | 1 |
 | 3 | [phase-3-models-subagents.md](phase-3-models-subagents.md) | モデル選択とサブエージェント | 完了（2026-11-23） | 2 |
-| 4 | [phase-4-plan-loop-verify-review.md](phase-4-plan-loop-verify-review.md) | 計画・自律ループ・検証・独立レビュー・完了報告 | 未着手 | 3 |
+| 4 | [phase-4-plan-loop-verify-review.md](phase-4-plan-loop-verify-review.md) | 計画・自律ループ・検証・独立レビュー・完了報告 | 完了（2026-11-23） | 3 |
 | 5 | [phase-5-pr-tools.md](phase-5-pr-tools.md) | PR の作成・依頼ゲートつきマージ | 未着手 | 4 |
 | 6 | [phase-6-usage-compaction.md](phase-6-usage-compaction.md) | 利用状況の統合と要約（compaction） | 未着手 | 3 |
 | 7 | [phase-7-install-skills-docs.md](phase-7-install-skills-docs.md) | 配置スクリプト・nix-setup スキル・README・e2e | 未着手 | 5, 6 |

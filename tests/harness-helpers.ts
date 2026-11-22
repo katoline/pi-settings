@@ -19,6 +19,7 @@ export const config: HarnessConfig = {
   defaultBranches: ["main", "master"],
   selectModelOnStartup: false,
   subagent: { maxTasks: 8, maxConcurrency: 4, timeoutSeconds: 900, maxTotal: 64 },
+  flow: { maxCyclesPerItem: 3, maxContinuations: 200, maxMinutes: 240, maxNoProgress: 3 },
 };
 
 /** テスト用のランタイム。必要な項目だけ上書きする */
@@ -33,6 +34,8 @@ export function runtime(over: Partial<Runtime> = {}): Runtime {
     subagentModelDefault: "opencode-go/deepseek-v4.1-flash",
     subagentSpawns: 0,
     childCost: 0,
+    plan: undefined,
+    planCompleted: false,
     ...over,
   };
 }

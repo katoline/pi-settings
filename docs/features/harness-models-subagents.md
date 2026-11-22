@@ -6,10 +6,11 @@
 
 ## 関連
 
-- コード：`agent/extensions/harness/models/`（`catalog.ts`・`register.ts`）、`subagent/`（`agents.ts`・`child.ts`・`format.ts`・`register.ts`）、`lib/state.ts`、`agent/agents/`（`scout.md`・`planner.md`・`worker.md`・`reviewer.md`）、`agent/settings.json`（`enabledModels`）
+- コード：`agent/extensions/harness/models/`（`catalog.ts`・`register.ts`）、`subagent/`（`agents.ts`・`child.ts`・`format.ts`・`register.ts`・`run.ts`。子を起動する本体は `run.ts` の `runSubagentTasks`で、`subagent` ツールと `harness_review` が共有する）、`lib/state.ts`、`agent/agents/`（`scout.md`・`planner.md`・`worker.md`・`reviewer.md`）、`agent/settings.json`（`enabledModels`）
 - テスト：`tests/harness-models.test.ts`・`tests/harness-subagent.test.ts`・`tests/harness-config.test.ts`・`tests/harness-output.test.ts`・`tests/harness-e2e-subagent.test.ts`（偽のモデルで実際の pi を起動する）
 - 決定：[011](../decisions/011-no-worktree.md)（worktree を使わない）、[002](../decisions/002-provider-neutral-instructions.md)
 - 計画：[plan/phase-3-models-subagents.md](../plan/phase-3-models-subagents.md)（完了）
+- 独立レビューでの reviewer の使われ方：[harness-flow.md](harness-flow.md)
 - 指示：[harness-instructions.md](harness-instructions.md)（`main.md` の「サブエージェント」の節、`subagent.md`）
 - 設定：[setup/settings.md](../setup/settings.md)（`enabledModels`・`harness.json`）、[setup/linking.md](../setup/linking.md)（`agents` のリンク）
 
@@ -51,7 +52,7 @@ pi --mode json -p --no-session --no-extensions -e <harness の index.ts> --no-mc
 
 上限超過・未知の役割は、子を起動せずに断りのメッセージを返す（エラーにはしない）。`harness.json` で上書きできる（[setup/settings.md](../setup/settings.md)）。ツールの引数スキーマの `maxItems` も、拡張の読み込み時の `subagent.maxTasks` から作る。
 
-`maxTotal` の判定に使う合計の件数（`Runtime.subagentSpawns`）は、`session_start`・`session_tree` で、セッションの枝（`sessionManager.getBranch()`）に残る `subagent` の結果から数え直す（純粋関数 `subagentTotals`。結果の `details` の配列の長さを足す）。再開・`/reload`・フォーク・ツリーの移動でも 0 に戻らない。新しいエントリは書き足さない。
+`maxTotal` の判定に使う合計の件数（`Runtime.subagentSpawns`）は、`session_start`・`session_tree` で、セッションの枝（`sessionManager.getBranch()`）に残る `subagent` の結果と、`harness_review` の結果（`details.children`）から数え直す（純粋関数 `subagentTotals`。子の結果の配列の長さを足す）。再開・`/reload`・フォーク・ツリーの移動でも 0 に戻らない。新しいエントリは書き足さない。
 
 ## 役割
 
@@ -61,7 +62,7 @@ pi --mode json -p --no-session --no-extensions -e <harness の index.ts> --no-mc
 | --- | --- | --- |
 | `scout` | 調査。関係するパス・依存・慣習・リスクを返す | `read, grep, find, ls`（読み取り専用） |
 | `planner` | 計画。独立にテストできる単位への分割と完了条件を提案する | 同上 |
-| `reviewer` | 独立レビュー。末尾に `<approved/>` か `<disapproved/>` を返す | 同上 |
+| `reviewer` | 独立レビュー。最終行に `<approved/>` か `<disapproved/>` を返す。メインが `harness_review` で、差分と要件だけを渡して呼ぶ（[harness-flow.md](harness-flow.md)） | 同上 |
 | `worker` | 実装・検証 | 未指定（既定のツール。書き込み可） |
 
 ## 書き込み可の役割の直列化

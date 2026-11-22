@@ -38,4 +38,15 @@ pi はロックを取ってから `writeFileSync` でリンク先に書き込む
 | `subagent.timeoutSeconds` | 900 | 1 件あたりの時間切れ |
 | `subagent.maxTotal` | 64 | このセッションで起動できる合計（再開・`/reload`・フォークでも、セッションの枝に残る結果から数え直す） |
 
-型が違う値（boolean でない・正の整数でない）は無視して既定を使う。
+フェーズ 4 で足したキー（計画・自律ループの上限。[features/harness-flow.md](../features/harness-flow.md)）：
+
+| キー | 既定 | 意味 |
+| --- | --- | --- |
+| `flow.maxCyclesPerItem` | 3 | 項目ごとの差し戻し（検証の失敗・レビューの却下）の上限（累計の回数。中断と判定なしは数えない）。達した項目は自動で「未完了」 |
+| `flow.maxContinuations` | 200 | 自律ループの自動の継続の上限（回） |
+| `flow.maxMinutes` | 240 | 計画の確定（再開）からの時間の上限（分） |
+| `flow.maxNoProgress` | 3 | 進捗がないまま続けてよい回数 |
+
+キルスイッチは設定ではなく、ファイル `~/.pi/agent/harness-off`（`PI_CODING_AGENT_DIR` の下）。ある間は自律ループが継続しない。
+
+型が違う値（boolean でない・正の整数でない）は無視して既定を使う。`subagent`・`flow` は、キーごとに正の整数だけ採用する。

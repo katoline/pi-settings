@@ -455,6 +455,20 @@ test("セッションの枝から、サブエージェントの件数と費用�
   assert.deepEqual(subagentTotals([]), { spawns: 0, cost: 0 });
 });
 
+test("harness_review の結果（details.children）も、件数と費用に数え直す", () => {
+  const entries = [
+    toolResult("subagent", [withCost(0.01)]),
+    toolResult("harness_review", { verdict: "approved", children: [withCost(0.02)] }),
+    toolResult("harness_review", { verdict: "none", children: [withCost(0.03), withCost(0.04)] }),
+    toolResult("harness_review", undefined), // 断られた・差分なし（details が無い）は数えない
+    toolResult("harness_review", { verdict: "none" }), // children が無い
+    toolResult("harness_review", [withCost(9)]), // 配列の details は subagent の形式。数えない
+  ];
+  const t = subagentTotals(entries);
+  assert.equal(t.spawns, 4);
+  assert.ok(Math.abs(t.cost - 0.1) < 1e-9);
+});
+
 test("subagent ツール: 件数と費用は、session_start・session_tree で枝から戻す", async () => {
   const s = register({ subagentSpawns: 40, childCost: 5 });
   await s.emit("session_start", [toolResult("subagent", [withCost(0.5), withCost(0.25)])]);

@@ -291,9 +291,11 @@ export function hasSuccessfulWrite(details: unknown): boolean {
 }
 
 /**
- * セッションの枝(`sessionManager.getBranch()` のエントリ)に残る `subagent` ツールの結果から、
- * 起動したサブエージェントの件数と費用の合計を数え直す。結果の details は子の結果(`ChildResult`)の配列。
- * 断られた呼び出し(上限超過・未知の役割など)は details が無いので数えない。
+ * セッションの枝(`sessionManager.getBranch()` のエントリ)に残るツールの結果から、起動したサブエージェントの
+ * 件数と費用の合計を数え直す。対象は次の 2 つ。
+ * - `subagent`: details が子の結果(`ChildResult`)の配列
+ * - `harness_review`: 内部で reviewer を起動する。details の `children` が子の結果の配列
+ * 断られた呼び出し(上限超過・未知の役割など)は子の結果が無いので数えない。
  */
 export function subagentTotals(entries: readonly unknown[]): { spawns: number; cost: number } {
   let spawns = 0;
@@ -304,10 +306,15 @@ export function subagentTotals(entries: readonly unknown[]): { spawns: number; c
       message?: { role?: string; toolName?: string; details?: unknown };
     } | null;
     const msg = entry?.type === "message" ? entry.message : undefined;
-    if (msg?.role !== "toolResult" || msg.toolName !== "subagent") continue;
-    if (!Array.isArray(msg.details)) continue;
-    spawns += msg.details.length;
-    for (const r of msg.details) {
+    if (msg?.role !== "toolResult") continue;
+    let children: unknown;
+    if (msg.toolName === "subagent") children = msg.details;
+    else if (msg.toolName === "harness_review")
+      children = (msg.details as { children?: unknown } | null | undefined)?.children;
+    else continue;
+    if (!Array.isArray(children)) continue;
+    spawns += children.length;
+    for (const r of children) {
       const c = (r as Partial<ChildResult> | null)?.usage?.cost;
       if (typeof c === "number" && Number.isFinite(c)) cost += c;
     }

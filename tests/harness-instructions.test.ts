@@ -37,14 +37,28 @@ test("サブエージェントでは subagent.md が入る", async () => {
   assert.match(sections?.harness ?? "", /変更ファイル/);
 });
 
-test("main.md は、まだ無いもの（worktree の節・計画やレビューのツール）に触れない", () => {
+test("main.md は、計画・検証・レビューのツールを書き、まだ無いもの（worktree・PR のツール・pi --print の手順）に触れない", () => {
   const main = loadInstructions("main");
   assert.doesNotMatch(main, /作業用worktree/);
   assert.doesNotMatch(main, /完了の合図/);
-  for (const name of ["plan_", "ask_user", "harness_verify", "harness_review", "harness_pr_"]) {
+  assert.doesNotMatch(main, /pi --print/);
+  for (const name of ["harness_pr_", "harness_worktree"]) {
     assert.ok(!main.includes(name), name);
   }
+  for (const name of [
+    "ask_user",
+    "plan_propose",
+    "plan_update",
+    "plan_note",
+    "plan_report",
+    "harness_verify",
+    "harness_review",
+  ]) {
+    assert.ok(main.includes(name), name);
+  }
   assert.match(main, /自分で判断したこと/);
+  // ファイルを変更しない依頼では、計画を作らない
+  assert.match(main, /計画を作らずに/);
 });
 
 test("main.md は、subagent ツールの使い方（役割・自己完結した依頼・書き込み可は 1 件ずつ・子ができないこと）を書く", () => {
@@ -58,8 +72,8 @@ test("main.md は、subagent ツールの使い方（役割・自己完結した
   assert.match(main, /同じファイルを複数の依頼で編集させない/);
   assert.match(main, /質問・commit・push・PR・マージができない/);
   assert.match(main, /自分で確かめてから完了/);
-  // 独立レビューの節（pi --print）は、フェーズ 4 まで変えない
-  assert.match(main, /pi --print --no-session --tools read,grep,find,ls/);
+  // 独立レビューは harness_review で行う（pi --print の手順は無い）
+  assert.match(main, /# 独立レビュー[\s\S]*`harness_review` を呼ぶ/);
 });
 
 test("指示ファイルが読めなければ、例外を出さず、差し込まない", async () => {

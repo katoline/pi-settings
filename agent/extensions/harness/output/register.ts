@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { isAutonomous } from "../flow/plan.ts";
 import type { Runtime } from "../lib/runtime.ts";
 import { hasSuccessfulWrite } from "../subagent/child.ts";
 import { withFinalLine } from "./final-line.ts";
@@ -10,7 +11,9 @@ const ARTIFACT_COMMAND = /\b(?:git\s+(?:-C\s+\S+\s+)?(?:commit|push)|gh\s+pr\s+c
 
 /**
  * 作業が完了したら、最終応答の最後の 1 行を「🚀作業が完了しました！」にする。
- * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、書き込み可のサブエージェントの成功、commit、push、PR の作成）が成功したこと。
+ * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、書き込み可のサブエージェントの成功、commit、push、PR の作成）が成功したこと、
+ * またはその依頼の中で計画の完了報告（`plan_report`）を出したこと。
+ * ただし、確定した計画を自律で進めている間（未完了で、一時停止していない）は付けない。
  * モデルの書き忘れには頼らず、確定したメッセージを、ハーネスが書き換える。
  */
 export function registerOutput(pi: ExtensionAPI, rt: Runtime): void {
@@ -23,6 +26,7 @@ export function registerOutput(pi: ExtensionAPI, rt: Runtime): void {
   pi.on("before_agent_start", async (event) => {
     if (event.messageType === "user") {
       touched = false;
+      rt.planCompleted = false;
       pending.clear();
     }
     return undefined;
@@ -45,7 +49,9 @@ export function registerOutput(pi: ExtensionAPI, rt: Runtime): void {
   });
 
   pi.on("message_end", async (event) => {
-    if (rt.isSubagent || !touched) return undefined;
+    if (rt.isSubagent || !(touched || rt.planCompleted)) return undefined;
+    // 計画を自律で進めている間の応答（継続の途中）は、完了ではない。一時停止中・計画なし・完了済みは通常の条件で付ける
+    if (isAutonomous(rt.plan)) return undefined;
     const replaced = withFinalLine(event.message as never);
     return replaced ? { message: replaced as never } : undefined;
   });
