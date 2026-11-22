@@ -9,7 +9,7 @@
 - コード：`agent/extensions/harness/flow/`（`plan.ts`・`loop.ts`・`verify.ts`・`review.ts`・`report.ts`・`fingerprint.ts`・`register.ts`）、`subagent/run.ts`（`harness_review` と `subagent` が共有する子の起動）、`output/register.ts`（完了の合図の条件）、`lib/config.ts`（`flow` の上限）
 - テスト：`tests/harness-plan.test.ts`・`tests/harness-flow.test.ts`（`registerFlow` のハンドラ・ツール・`/plan` を偽の `pi`・`ctx` で呼ぶ。完了報告の出し直し・差し戻しの数え方・一時停止・エラーでの終了・完了の合図とのつながり）・`tests/harness-verify.test.ts`・`tests/harness-config.test.ts`・`tests/harness-output.test.ts`・`tests/harness-subagent.test.ts`（件数・費用の数え直し）、`tests/harness-e2e-flow.test.ts`（偽のモデルで実際の pi を起動する。仕組みは `tests/harness-e2e-helpers.ts`）
 - 決定：[006](../decisions/006-plan-confirm-dialog.md)（確定ダイアログは残す）、[003](../decisions/003-auto-pr-and-merge-policy.md)（PR とマージ）、[011](../decisions/011-no-worktree.md)（worktree を使わない）
-- 計画：[plan/phase-4-plan-loop-verify-review.md](../plan/phase-4-plan-loop-verify-review.md)（完了）、[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)（PR の記録を足す）
+- 計画：[plan/phase-4-plan-loop-verify-review.md](../plan/phase-4-plan-loop-verify-review.md)（完了）、[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)（完了。PR の記録を足した）、[harness-pr.md](harness-pr.md)（PR のツール）
 - 指示：[harness-instructions.md](harness-instructions.md)（`main.md` の「作業の進め方（PDCA）」「独立レビュー」）、サブエージェント：[harness-models-subagents.md](harness-models-subagents.md)
 - 設定：[setup/settings.md](../setup/settings.md)（`flow` の上限）
 
@@ -17,7 +17,7 @@
 
 | 名前 | 内容 |
 | --- | --- |
-| `ask_user` | 計画の段階で、要件・完了条件・判断の基準・仕様の選択をユーザーに質問する（選択肢つきは `select`、なければ `input`）。UI が無ければ断り、妥当な既定で進めて `plan_note` に記録するよう返す。**計画が確定したら `setActiveTools` でツール一覧から外し**、計画が完了したとき・一時停止したとき・計画が無いとき（`/plan clear` を含む）に戻す（`session_start`・`session_tree` で状態から決め直す）。一時停止中は自律で進めていないとみなす |
+| `ask_user` | 計画の段階で、要件・完了条件・判断の基準・仕様の選択をユーザーに質問する（選択肢つきは `select`、なければ `input`）。UI が無ければ断り、妥当な既定で進めて `plan_note` に記録するよう返す。**計画が確定したら `setActiveTools` でツール一覧から外し**（ツール一覧の出し入れは `flow/tools.ts` の `syncActiveTools` 1 か所で組み立て、`harness_pr_merge` の出し入れと消し合わない）、計画が完了したとき・一時停止したとき・計画が無いとき（`/plan clear` を含む）に戻す（`session_start`・`session_tree` で状態から決め直す）。一時停止中は自律で進めていないとみなす |
 | `plan_propose` | 目的と、完了条件つきの項目（`id`・`title`・`acceptance`・`kind`（`change` / `task`。既定 `change`）・`review`）を提出する。空の目的・項目・重複 `id`・完了条件なしは受け付けない。ダイアログ（`ctx.ui.select`）で「確定する / 修正を依頼する / 中止する」を選ばせる（決定 006）。確定すると状態を保存する。確定済みで未完了の計画（一時停止中を含む）があるときは、確認の本文に「確定すると、未完了の計画「目的」（未着手・進行中 N 件）を置き換えます」と書く。UI が無いときは確認できず、確定しない |
 | `plan_update` | 項目を `in_progress`（着手時に付ける。差し戻しは進行中の項目に数える）・`done`（`evidence` 必須）・`deferred`（`reason` 必須。ユーザーにしかできないことと、自分の変更と関係ない既存の失敗で検証が通らない項目）にする。保留の項目を `in_progress` に戻すと、報告済みの印（`reported`）を戻す。`done` は「完了のゲート」を満たすときだけ通る。完了・未完了として確定した項目は変えられない |
 | `plan_note` | 計画で決めていない判断を、妥当な既定で進めたときに記録する（完了報告の「自分で判断したこと」） |
@@ -88,7 +88,7 @@ reviewer は、`subagent` ツールと同じ仕組み（`subagent/run.ts` の `r
 
 ## 完了報告
 
-`plan_report` が、状態から固定の形で組み立てる。「要件ごとの結果」（完了・未完了・保留と理由、根拠、差し戻し回数）、「実行した検証」（成功・失敗・未検証）、「独立レビュー」（承認・却下）、「自分で判断したこと」、「ユーザーへの依頼（保留した項目）」。検証は成功・失敗・中断・未検証、レビューは承認・却下・判定なしで書く。一時停止中ならその旨も書く。「PR」の欄は、PR の記録（`plan.prs`）があるときだけ出す。記録はフェーズ 5 の PR のツールが入れる。
+`plan_report` が、状態から固定の形で組み立てる。「要件ごとの結果」（完了・未完了・保留と理由、根拠、差し戻し回数）、「実行した検証」（成功・失敗・未検証）、「独立レビュー」（承認・却下）、「自分で判断したこと」、「ユーザーへの依頼（保留した項目）」。検証は成功・失敗・中断・未検証、レビューは承認・却下・判定なしで書く。一時停止中ならその旨も書く。「PR」の欄は、PR の記録（`plan.prs`）があるときだけ出す。記録は `harness_pr_create`・`harness_pr_merge` が入れる（作成時に未保護などの注意があれば、PR の下に「注意」として出す）。
 
 完了の合図（[harness-instructions.md](harness-instructions.md)）は、その依頼の中での成果物を作る操作の成功か、計画の完了（その依頼の中で `plan_report` を呼んだ）で付く。ただし、確定した計画を自律で進めている間（未着手・進行中の項目が残り、一時停止していない。継続の途中の応答）は付けない（`isAutonomous`）。一時停止中・計画なし・完了済みのときは、通常の条件（write・edit・commit などの成功）で付く。`planCompleted` は、新しいユーザーの依頼の開始と、計画の確定で戻る（報告済みかどうかは計画の `reported` が持ち、合図の条件には使わない）。
 
@@ -109,4 +109,4 @@ reviewer は、`subagent` ツールと同じ仕組み（`subagent/run.ts` の `r
 - UI が無い実行（`--print`・JSON モード）では、`plan_propose` が確定できないので、計画の流れは使えない
 - 計画の状態は、ユーザーの依頼ごとに 1 つのメッセージとしてセッションに残る（依頼の数だけ増える）。キャッシュを優先した結果で、圧縮（compaction）のときにまとめられる
 - 計画の確定後に別の依頼をすると、その依頼も確定済みの計画の続きとして扱われる。止めるには `/plan stop`（一時停止。`ask_user` が戻り、完了の合図も通常の条件で付く。依頼の開始時の状態の差し込みは「一時停止中」として続く）か `/plan clear`（破棄）。新しい計画を確定すると、未完了の計画は置き換わる（確認の本文に書く）
-- PR の作成・マージのツールと、`plan.prs` への記録はフェーズ 5。今は PR を `pr` スキルで作り、PR の URL は最終報告に書くよう指示している
+- PR の作成・マージは専用ツール（[harness-pr.md](harness-pr.md)）。継続のメッセージにも、PR のツールの使い方（commit を先に・検証とレビューのあとに作る・マージは依頼されたときだけ）を入れている

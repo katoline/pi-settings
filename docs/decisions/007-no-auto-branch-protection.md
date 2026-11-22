@@ -26,3 +26,4 @@
 ## 関連
 
 - [plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)
+- [features/harness-pr.md](../features/harness-pr.md)（`harness_pr_create` の保護の確認）
