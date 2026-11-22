@@ -18,6 +18,7 @@
 | [008](008-link-settings-json.md) | `settings.json` もリポジトリで管理してリンクする | 有効 | 2026-11-22 |
 | [009](009-anthropic-usage-session-cost.md) | Anthropic はセッションの使用額を表示する（残高は出さない） | 有効 | 2026-11-22 |
 | [010](010-voice-input-own-extension.md) | Mac の音声入力は自前の拡張で作る（別途、個別に進める） | 計画中 | 2026-11-22 |
+| [011](011-no-worktree.md) | pi では worktree を使わない | 有効 | 2026-11-23 |
 
 ## 書式
 
