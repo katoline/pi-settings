@@ -1,7 +1,8 @@
 import { realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import { type HarnessConfig, loadConfig } from "./config.ts";
+import { parseRef, SUBAGENT_DEFAULT } from "../models/catalog.ts";
+import { type HarnessConfig, loadConfig, resolveAgentDir } from "./config.ts";
 import type { FsProbe } from "./types.ts";
 
 /** ハーネス全体で共有する、実行時の事実（このフェーズではガードが使うものだけ） */
@@ -11,15 +12,32 @@ export interface Runtime {
   isSubagent: boolean;
   home: string;
   tmpdir: string;
+  /** pi のエージェントディレクトリ（役割の定義 `agents/` はこの下） */
+  agentDir: string;
+  /** いまのサブエージェントのモデル（`provider/id`。`/subagent-model` で変わる） */
+  subagentModel: string;
+  /** サブエージェントのモデルの既定（環境変数 `PI_SUBAGENT_MODEL`、無ければ DeepSeek V4.1 Flash） */
+  subagentModelDefault: string;
+  /** このセッションで起動したサブエージェントの数（上限の判定用） */
+  subagentSpawns: number;
+  /** サブエージェントの費用の合計（ドル。表示はフェーズ 6） */
+  childCost: number;
 }
 
 export function createRuntime(env: NodeJS.ProcessEnv = process.env): Runtime {
   const home = homedir();
+  const fromEnv = env.PI_SUBAGENT_MODEL?.trim();
+  const subagentModelDefault = fromEnv && parseRef(fromEnv) ? fromEnv : SUBAGENT_DEFAULT;
   return {
     config: loadConfig(home, undefined, env),
     isSubagent: env.PI_SUBAGENT === "1",
     home,
     tmpdir: env.TMPDIR || tmpdir(),
+    agentDir: resolveAgentDir(home, env),
+    subagentModel: subagentModelDefault,
+    subagentModelDefault,
+    subagentSpawns: 0,
+    childCost: 0,
   };
 }
 

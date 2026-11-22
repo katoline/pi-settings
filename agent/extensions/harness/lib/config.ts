@@ -14,7 +14,23 @@ export interface HarnessConfig {
   protectedHarnessPaths: string[];
   /** 既定ブランチとして扱うブランチ名（origin/HEAD の指す先も加える） */
   defaultBranches: string[];
+  /** 起動時にメインのモデルを選ぶダイアログを出す（既定 false。`/models` で選ぶ） */
+  selectModelOnStartup: boolean;
+  subagent: SubagentLimits;
 }
+
+export interface SubagentLimits {
+  /** 1 回の呼び出しで任せられる件数 */
+  maxTasks: number;
+  /** 読み取り専用の役割を同時に動かす数 */
+  maxConcurrency: number;
+  /** 1 件あたりの時間切れ（秒） */
+  timeoutSeconds: number;
+  /** このセッションで起動できる合計 */
+  maxTotal: number;
+}
+
+const SUBAGENT_KEYS = ["maxTasks", "maxConcurrency", "timeoutSeconds", "maxTotal"] as const;
 
 const KEYS = [
   "workRoots",
@@ -30,6 +46,14 @@ function expandHome(p: string, home: string): string {
   if (p === "~") return home;
   if (p.startsWith("~/")) return path.join(home, p.slice(2));
   return p;
+}
+
+const isPositiveInt = (v: unknown): v is number =>
+  typeof v === "number" && Number.isInteger(v) && v > 0;
+
+/** pi のエージェントディレクトリ（`PI_CODING_AGENT_DIR`、既定は ~/.pi/agent） */
+export function resolveAgentDir(home: string, env: NodeJS.ProcessEnv): string {
+  return env.PI_CODING_AGENT_DIR || path.join(home, ".pi", "agent");
 }
 
 const isStringArray = (v: unknown): v is string[] =>
@@ -48,15 +72,25 @@ export function loadConfig(
     readFileSync(path.join(here, "..", "config.default.json"), "utf8"),
   );
   // Pi の設定ディレクトリ（`PI_CODING_AGENT_DIR`）に従う。既定は ~/.pi/agent
-  const agentDir = env.PI_CODING_AGENT_DIR || path.join(home, ".pi", "agent");
-  const file = overridePath ?? path.join(agentDir, "harness.json");
+  const file = overridePath ?? path.join(resolveAgentDir(home, env), "harness.json");
   if (existsSync(file)) {
     try {
       const override: unknown = JSON.parse(readFileSync(file, "utf8"));
       if (override && typeof override === "object") {
+        const o = override as Record<string, unknown>;
         for (const key of KEYS) {
-          const v = (override as Record<string, unknown>)[key];
+          const v = o[key];
           if (isStringArray(v)) merged[key] = v;
+        }
+        if (typeof o.selectModelOnStartup === "boolean") {
+          merged.selectModelOnStartup = o.selectModelOnStartup;
+        }
+        if (o.subagent && typeof o.subagent === "object") {
+          const sub = o.subagent as Record<string, unknown>;
+          for (const key of SUBAGENT_KEYS) {
+            const v = sub[key];
+            if (isPositiveInt(v)) merged.subagent[key] = v;
+          }
         }
       }
     } catch {

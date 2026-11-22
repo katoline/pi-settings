@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerGuards } from "../agent/extensions/harness/guards/register.ts";
 import type { Runtime } from "../agent/extensions/harness/lib/runtime.ts";
-import { config, FAKE, HOME } from "./harness-helpers.ts";
+import { FAKE, HOME, runtime } from "./harness-helpers.ts";
 
 type Result = { block?: boolean; reason?: string; content?: { text: string }[] } | undefined;
 type Handler = (event: object, ctx: object) => Promise<Result>;
@@ -20,7 +20,7 @@ function setup(branch = "feat/x") {
       return { code: 1, stdout: "" };
     },
   } as unknown as ExtensionAPI;
-  const rt: Runtime = { config, isSubagent: false, home: HOME, tmpdir: "/tmp" };
+  const rt: Runtime = runtime();
   registerGuards(pi, rt);
   const call = (name: string) => handlers.get(name) as Handler;
   return { call };

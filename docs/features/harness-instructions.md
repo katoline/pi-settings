@@ -7,7 +7,7 @@ pi への固定の指示（作業の約束事）を、`AGENTS.md`（コンテキ
 ## 関連
 
 - コード：`agent/extensions/harness/instructions/`（`main.md`・`subagent.md`・`load.ts`・`register.ts`）、`agent/extensions/harness/output/`（`final-line.ts`・`register.ts`）
-- テスト：`tests/harness-instructions.test.ts`・`tests/harness-output.test.ts`
+- テスト：`tests/harness-instructions.test.ts`・`tests/harness-output.test.ts`・`tests/harness-e2e-subagent.test.ts`（書き込み可の子が成功したときの合図）
 - 決定：[002](../decisions/002-provider-neutral-instructions.md)（プロバイダーに依存しない 1 本）、[003](../decisions/003-auto-pr-and-merge-policy.md)（PR とマージ）、[011](../decisions/011-no-worktree.md)（worktree を使わない）
 - 計画：[plan/phase-2-instructions-output.md](../plan/phase-2-instructions-output.md)（完了）
 - 以前は `agent/AGENTS.md` を `~/.pi/agent/AGENTS.md` からリンクしていた（決定 002 の時点の置き場所）。フェーズ 2 で廃止した（[setup/linking.md](../setup/linking.md)）
@@ -31,17 +31,18 @@ pi への固定の指示（作業の約束事）を、`AGENTS.md`（コンテキ
 | 作業の進め方（PDCA） | 要件をチェックリストにし、検証・独立レビュー・根拠の確認を 3 周まで回す |
 | 自律実行のルール | 計画にない判断は妥当な既定で進めて報告の「自分で判断したこと」に書く。ユーザーにしかできないことは保留にして最後にまとめて依頼する。無関係な既存の失敗は直さず報告する |
 | 変更後の検証 | プロジェクトの検証コマンドを通す。テストの skip などで通さない |
+| サブエージェント | `subagent` ツールで任せる場面（重い調査・並列にできる作業）、4 つの役割、自己完結した依頼、書き込み可の役割は 1 件ずつで同じファイルを編集させない、子は質問・commit・push・PR・マージができない、報告は自分で確かめてから完了にする |
 | 独立レビュー | `pi --print --no-session --tools read,grep,find,ls` を別プロセスで起動し、差分と要件だけを渡す |
 | レビューの範囲 | 脅威モデルで見る範囲を分け、再現経路のある指摘だけを出す |
 | 秘密情報 | `.env`・鍵・`auth.json` を読まない・出さない・コミットしない |
 | パッケージインストールの制限 | グローバル環境を勝手に変えない。ツールは devShell に宣言する |
 | 要約時に残すこと | 変更ファイルと検証の有無・検証の結果・PR・決定事項と判断待ち |
 
-「完了の合図」の節は置かない（拡張が書き足すため）。まだ無いツール（計画・`ask_user`・検証・独立レビュー・サブエージェント・PR のツール）には触れない。フェーズ 3〜5 でそのツールを入れるときに足す。
+「完了の合図」の節は置かない（拡張が書き足すため）。まだ無いツール（計画・`ask_user`・検証・独立レビュー・PR のツール）には触れない。フェーズ 4・5 でそのツールを入れるときに足す。`subagent` はフェーズ 3 で入れたので「サブエージェント」の節がある。独立レビューの節（`pi --print …`）はフェーズ 4 で扱う。
 
 ## subagent.md
 
-任された作業だけを行う。独立レビュー・commit・push・PR・マージは親に任せる。質問できないので、既定で進めて「未解決点」に書く。報告は「変更ファイル／実行した検証と結果／未解決点」の形。サブエージェントを起動する仕組みはフェーズ 3 で入れる。
+任された作業だけを行う。独立レビュー・commit・push・PR・マージは親に任せる。質問できないので、既定で進めて「未解決点」に書く。報告は「変更ファイル／実行した検証と結果／未解決点」の形。サブエージェントを起動する仕組みは [harness-models-subagents.md](harness-models-subagents.md)。親と同じ作業ディレクトリで動き、ほかの子が同時に動くことがあるので、任された範囲のファイルだけを変更する。
 
 ## 完了の合図
 
@@ -51,6 +52,7 @@ pi への固定の指示（作業の約束事）を、`AGENTS.md`（コンテキ
 
 - `write`・`edit`
 - bash の `git commit`・`git push`・`gh pr create`（`git -C <dir>` 形式を含む）
+- `subagent` ツールで、書き込み可の役割（[harness-models-subagents.md](harness-models-subagents.md)）の依頼が 1 件以上成功した（`isFailed` でない）。`tool_execution_end` の結果の `details`（子の結果の配列。各要素の `writable` と失敗の判定）で判定する。pi 1.5.2 は、`tool_execution_end` の `result` に `details` を含めて渡す（e2e で確認）。読み取り専用の役割だけ、失敗、上限超過などの断りでは付かない
 - `tool_execution_start`（`args` がある）でツール名とコマンドを `toolCallId` ごとに控え、`tool_execution_end`（`args` が無い）の同じ `toolCallId` で `isError` でないことを確かめて判定する
 
 リセットは、依頼の実行が始まるとき（`before_agent_start` の `messageType === "user"`）。`input` は実行中のステア・後続メッセージでもキュー投入時に発火するため、リセットには使わない。

@@ -52,3 +52,55 @@ test("型が違う上書きのキーは無視して、既定を使う", () => {
   assert.ok(c.workRoots.includes("/Users/u/Dev/hobby"));
   assert.deepEqual(c.defaultBranches, ["main", "master"]);
 });
+
+test("起動時のモデル選択は既定で無効、サブエージェントの上限は既定の値", () => {
+  const c = loadConfig("/Users/u", path.join(tmp, "none.json"), {});
+  assert.equal(c.selectModelOnStartup, false);
+  assert.deepEqual(c.subagent, {
+    maxTasks: 8,
+    maxConcurrency: 4,
+    timeoutSeconds: 900,
+    maxTotal: 64,
+  });
+});
+
+test("selectModelOnStartup と subagent の上書き（一部のキーだけでもよい）", () => {
+  const f = path.join(tmp, "sub.json");
+  writeFileSync(
+    f,
+    JSON.stringify({ selectModelOnStartup: true, subagent: { maxConcurrency: 2, maxTotal: 10 } }),
+  );
+  const c = loadConfig("/Users/u", f, {});
+  assert.equal(c.selectModelOnStartup, true);
+  assert.deepEqual(c.subagent, {
+    maxTasks: 8,
+    maxConcurrency: 2,
+    timeoutSeconds: 900,
+    maxTotal: 10,
+  });
+});
+
+test("壊れた値（boolean でない・正の整数でない・オブジェクトでない）は無視して既定を使う", () => {
+  const f = path.join(tmp, "badsub.json");
+  writeFileSync(
+    f,
+    JSON.stringify({
+      selectModelOnStartup: "yes",
+      subagent: { maxTasks: 0, maxConcurrency: -1, timeoutSeconds: 1.5, maxTotal: "64" },
+    }),
+  );
+  const c = loadConfig("/Users/u", f, {});
+  assert.equal(c.selectModelOnStartup, false);
+  assert.deepEqual(c.subagent, {
+    maxTasks: 8,
+    maxConcurrency: 4,
+    timeoutSeconds: 900,
+    maxTotal: 64,
+  });
+
+  const g = path.join(tmp, "badsub2.json");
+  writeFileSync(g, JSON.stringify({ subagent: 5 }));
+  assert.equal(loadConfig("/Users/u", g, {}).subagent.maxTasks, 8);
+  // 読み込みのたびに、既定の値は共有されない（上書きが次の読み込みに残らない）
+  assert.equal(loadConfig("/Users/u", path.join(tmp, "none.json"), {}).subagent.maxTotal, 64);
+});

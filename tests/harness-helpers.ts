@@ -1,4 +1,5 @@
 import type { HarnessConfig } from "../agent/extensions/harness/lib/config.ts";
+import type { Runtime } from "../agent/extensions/harness/lib/runtime.ts";
 import { invocations, parseShell } from "../agent/extensions/harness/lib/shell.ts";
 import type { GuardInput } from "../agent/extensions/harness/lib/types.ts";
 
@@ -16,7 +17,25 @@ export const config: HarnessConfig = {
   protectedGlobalPaths: [`${HOME}/Dev/seino914/dotfiles`],
   protectedHarnessPaths: [`${HOME}/.pi/agent`],
   defaultBranches: ["main", "master"],
+  selectModelOnStartup: false,
+  subagent: { maxTasks: 8, maxConcurrency: 4, timeoutSeconds: 900, maxTotal: 64 },
 };
+
+/** テスト用のランタイム。必要な項目だけ上書きする */
+export function runtime(over: Partial<Runtime> = {}): Runtime {
+  return {
+    config,
+    isSubagent: false,
+    home: HOME,
+    tmpdir: "/tmp",
+    agentDir: `${HOME}/.pi/agent`,
+    subagentModel: "opencode-go/deepseek-v4.1-flash",
+    subagentModelDefault: "opencode-go/deepseek-v4.1-flash",
+    subagentSpawns: 0,
+    childCost: 0,
+    ...over,
+  };
+}
 
 /** Mac の `/tmp` は `/private/tmp` へのリンク。実体のパスに解決する偽物の fs */
 export const macFs = {
