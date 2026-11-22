@@ -3,12 +3,15 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
+  formatAnthropicDetail,
+  formatAnthropicStatus,
   formatCodexStatus,
   formatCountdown,
   formatGoStatus,
   formatPercent,
   parseCodexUsage,
   parseOpenCodeGoUsage,
+  sumProviderCost,
   type UsageWindow,
 } from "./parse.ts";
 
@@ -166,14 +169,15 @@ async function loadGo(ctx: ExtensionContext, signal: AbortSignal): Promise<Provi
   return windows ? { kind: "ready", data: windows } : { kind: "error", message: "malformed response" };
 }
 
-function formatStatus(state: UsageState): string {
+function formatStatus(state: UsageState, anthropicCost: number | undefined): string {
   const codex = state.codex.kind === "ready"
     ? formatCodexStatus(state.codex.data)
     : state.codex.kind === "loading" ? "Codex …" : "Codex !";
   const go = state.go.kind === "ready"
     ? formatGoStatus(state.go.data)
     : state.go.kind === "loading" ? "Go …" : "Go !";
-  return `${codex} │ ${go}`;
+  const base = `${codex} │ ${go}`;
+  return anthropicCost === undefined ? base : `${base} │ ${formatAnthropicStatus(anthropicCost)}`;
 }
 
 function formatWindowDetail(window: UsageWindow, now: number): string {
@@ -182,7 +186,7 @@ function formatWindowDetail(window: UsageWindow, now: number): string {
   return `${window.label} ${formatPercent(window.usedPercent)} used${reset ? ` · ${reset}` : ""}${limited}`;
 }
 
-function formatDetails(state: UsageState, now = Date.now()): string {
+function formatDetails(state: UsageState, anthropicCost: number, now = Date.now()): string {
   const lines = ["Usage"];
   const add = (title: string, state: ProviderState<UsageWindow[]>) => {
     if (state.kind === "loading") lines.push(`${title}: loading`);
@@ -191,6 +195,7 @@ function formatDetails(state: UsageState, now = Date.now()): string {
   };
   add("Codex", state.codex);
   add("Go", state.go);
+  lines.push(formatAnthropicDetail(anthropicCost));
   return lines.join("\n");
 }
 
@@ -201,9 +206,20 @@ export default function usageExtension(pi: ExtensionAPI): void {
   const lastFetch: Record<ProviderName, number> = { codex: 0, go: 0 };
   const inflight = new Map<ProviderName, { controller: AbortController; promise: Promise<void> }>();
 
+  // このセッションで Anthropic に使った額（USD）。取得できなければ 0。
+  // /tree で戻っても捨てた分岐の分は課金済みなので、今の分岐（getBranch）ではなく全エントリを合計する（pi 本体のフッターと同じ）
+  const anthropicCost = (ctx: ExtensionContext): number => {
+    try {
+      return sumProviderCost(ctx.sessionManager.getEntries());
+    } catch {
+      return 0;
+    }
+  };
+
   const render = (ctx: ExtensionContext): void => {
     if (!alive || ctx.hasUI === false) return;
-    ctx.ui.setStatus(STATUS_KEY, formatStatus(state));
+    const cost = ctx.model?.provider === "anthropic" ? anthropicCost(ctx) : undefined;
+    ctx.ui.setStatus(STATUS_KEY, formatStatus(state, cost));
   };
 
   const refresh = async (ctx: ExtensionContext, force: boolean): Promise<void> => {
@@ -263,7 +279,17 @@ export default function usageExtension(pi: ExtensionAPI): void {
   });
 
   pi.on("agent_end", (_event, ctx) => {
+    render(ctx);
     refresh(ctx, true).catch(() => {});
+  });
+
+  // message_end は pi がメッセージをセッションに保存する前に呼ばれるため、保存後に走る turn_end で再描画する
+  pi.on("turn_end", (_event, ctx) => {
+    render(ctx);
+  });
+
+  pi.on("model_select", (_event, ctx) => {
+    render(ctx);
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
@@ -273,7 +299,7 @@ export default function usageExtension(pi: ExtensionAPI): void {
   });
 
   pi.registerCommand("usage", {
-    description: "Show Codex and OpenCode Go usage",
+    description: "Show Codex, OpenCode Go and Anthropic usage",
     handler: async (_args, ctx) => {
       alive = true;
       await refresh(ctx, true);
@@ -281,7 +307,7 @@ export default function usageExtension(pi: ExtensionAPI): void {
       while (inflight.size > 0) {
         await Promise.all([...inflight.values()].map((entry) => entry.promise));
       }
-      ctx.ui.notify(formatDetails(state), "info");
+      ctx.ui.notify(formatDetails(state, anthropicCost(ctx)), "info");
     },
   });
 }

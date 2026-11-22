@@ -1,11 +1,52 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  formatAnthropicDetail,
+  formatAnthropicStatus,
   formatCodexStatus,
   formatGoStatus,
+  formatUsd,
   parseCodexUsage,
   parseOpenCodeGoUsage,
+  sumProviderCost,
 } from "./parse.ts";
+
+const msg = (provider: string, total?: number) => ({
+  type: "message",
+  message: { role: "assistant", provider, usage: total === undefined ? {} : { cost: { total } } },
+});
+
+test("sumProviderCost は空なら 0", () => {
+  assert.equal(sumProviderCost([]), 0);
+});
+
+test("sumProviderCost は Anthropic 以外を除外し usage エントリも含める", () => {
+  const entries = [
+    msg("anthropic", 0.1),
+    msg("openai-codex", 5),
+    { type: "message", message: { role: "user", provider: "anthropic", usage: { cost: { total: 9 } } } },
+    { type: "usage", provider: "anthropic", usage: { cost: { total: 0.05 } } },
+    { type: "usage", provider: "openai", usage: { cost: { total: 7 } } },
+  ];
+  assert.ok(Math.abs(sumProviderCost(entries) - 0.15) < 1e-9);
+});
+
+test("sumProviderCost は cost が無い・不正なエントリを 0 とみなす", () => {
+  assert.equal(sumProviderCost([msg("anthropic"), msg("anthropic", Number.NaN), null, "x", { type: "message" }]), 0);
+});
+
+test("formatUsd は小数 2 桁に丸める", () => {
+  assert.equal(formatUsd(0), "$0.00");
+  assert.equal(formatUsd(0.424), "$0.42");
+  assert.equal(formatUsd(0.426), "$0.43");
+  assert.equal(formatUsd(12.3), "$12.30");
+  assert.equal(formatUsd(Number.NaN), "$0.00");
+});
+
+test("Anthropic の表示文言", () => {
+  assert.equal(formatAnthropicStatus(0.42), "Anthropic このセッション $0.42");
+  assert.ok(formatAnthropicDetail(0).startsWith("Anthropic API: このセッション $0.00"));
+});
 
 test("parses Codex 5-hour and weekly windows without assuming order", () => {
   const windows = parseCodexUsage({
