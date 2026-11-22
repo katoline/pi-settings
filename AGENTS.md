@@ -4,13 +4,13 @@ Pi coding agent の個人設定と拡張を置くリポジトリ。このファ�
 
 ## 構成
 
-`agent/` は Pi のエージェントディレクトリ `~/.pi/agent` と同じ構成にし、`~/.pi/agent` 配下からシンボリックリンクで参照している（`AGENTS.md`・`extensions/`・`skills/`・`settings.json`）。Pi の設定ファイル・拡張・スキルはここに置き、置き場所は Pi のドキュメントのエージェントディレクトリの規約に合わせる。ここでの変更はリンク経由でそのまま手元の Pi に効く。
+`agent/` は Pi のエージェントディレクトリ `~/.pi/agent` と同じ構成にし、`~/.pi/agent` 配下からシンボリックリンクで参照している（`extensions/`・`skills/`・`settings.json`）。Pi の設定ファイル・拡張・スキルはここに置き、置き場所は Pi のドキュメントのエージェントディレクトリの規約に合わせる。ここでの変更はリンク経由でそのまま手元の Pi に効く。
 
-- `agent/AGENTS.md`：Pi のグローバル指示。全ディレクトリでの Pi の作業に効く。Codex・OpenCode Go・Anthropic API のどのモデルでも通じるよう、特定のエージェント製品のツール名やモデル名を前提にしない。このリポジトリ固有の内容は書かず、本ファイルに書く
-- `agent/extensions/<名前>/index.ts`：Pi 拡張（自動で読み込まれる）。追加・削除したら `package.json` の `pi.extensions` を合わせる。判定などの純粋ロジックは別ファイルに分け、`tests/*.test.ts` でテストする（テストは拡張のディレクトリではなく `tests/` に置く）。`harness` 拡張（ガード。フェーズ 2 以降で機能を足す）は `guards/`・`lib/` などのサブディレクトリに分けている
+- `agent/extensions/harness/instructions/main.md`：Pi のグローバル指示（メイン用。サブエージェント用は `subagent.md`）。`harness` 拡張が `<harness>` セクションで差し込み、全ディレクトリでの Pi の作業に効く（`agent/AGENTS.md` は廃止）。Codex・OpenCode Go・Anthropic API のどのモデルでも通じるよう、特定のエージェント製品のツール名やモデル名を前提にしない。このリポジトリ固有の内容は書かず、本ファイルに書く
+- `agent/extensions/<名前>/index.ts`：Pi 拡張（自動で読み込まれる）。追加・削除したら `package.json` の `pi.extensions` を合わせる。判定などの純粋ロジックは別ファイルに分け、`tests/*.test.ts` でテストする（テストは拡張のディレクトリではなく `tests/` に置く）。`harness` 拡張（ガード・固定の指示・完了の合図。フェーズ 3 以降で機能を足す）は `guards/`・`instructions/`・`output/`・`lib/` などのサブディレクトリに分けている
 - `agent/skills/<名前>/SKILL.md`：Pi のスキル
 - `agent/settings.json`：Pi のユーザー設定。Pi 自身も書き換える（モデルの切り替えなど）ので、その差分は意図したものだけコミットする
-- `agent/AGENTS.md`・`agent/skills/pr`・`agent/extensions/harness/guards`（ガード）は同じ運用（作業ごとに PR を自動作成し、マージは依頼されたときだけ）を支えるので、どれかを変えたら他との食い違いを確認する
+- `agent/extensions/harness/instructions/main.md`・`agent/skills/pr`・`agent/extensions/harness/guards`（ガード）は同じ運用（作業ごとに PR を自動作成し、マージは依頼されたときだけ）を支えるので、どれかを変えたら他との食い違いを確認する
 
 ## ドキュメント（docs/）
 
