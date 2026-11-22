@@ -162,6 +162,42 @@ export function formatCodexStatus(windows: UsageWindow[]): string {
   return `Codex ${windows.map((window) => formatWindowSlot(window, window.label)).join(" ")}`;
 }
 
+/**
+ * セッションのエントリ列から、指定プロバイダーの assistant メッセージと usage エントリの
+ * usage.cost.total（USD）を合計する。cost が無い・数値でないものは 0 として扱う。
+ */
+export function sumProviderCost(entries: readonly unknown[], provider = "anthropic"): number {
+  let total = 0;
+  for (const entry of entries) {
+    if (!isRecord(entry)) continue;
+    let holder: Record<string, unknown> | undefined;
+    if (entry.type === "message" && isRecord(entry.message) && entry.message.role === "assistant") {
+      holder = entry.message;
+    } else if (entry.type === "usage") {
+      holder = entry;
+    }
+    if (!holder || holder.provider !== provider) continue;
+    const usage = holder.usage;
+    const cost = isRecord(usage) && isRecord(usage.cost) ? finiteNumber(usage.cost.total) : undefined;
+    if (cost !== undefined && cost > 0) total += cost;
+  }
+  return total;
+}
+
+/** USD 金額を $0.42 の形式（小数 2 桁、四捨五入）にする。 */
+export function formatUsd(value: number): string {
+  const safe = Number.isFinite(value) && value > 0 ? value : 0;
+  return `$${safe.toFixed(2)}`;
+}
+
+export function formatAnthropicStatus(cost: number): string {
+  return `Anthropic このセッション ${formatUsd(cost)}`;
+}
+
+export function formatAnthropicDetail(cost: number): string {
+  return `Anthropic API: このセッション ${formatUsd(cost)}（pi の見積もり。残高と請求額は Console で確認）`;
+}
+
 export function formatGoStatus(windows: UsageWindow[]): string {
   return `Go ${formatWindowSlot(windowById(windows, "5h"), "5h")} ${formatWindowSlot(windowById(windows, "7d"), "7d")} ${formatWindowSlot(windowById(windows, "30d"), "30d")}`;
 }
