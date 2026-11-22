@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "09:00", timezone: Asia/Tokyo }
+    groups:
+      github-actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "09:00", timezone: Asia/Tokyo }
+    # pi 本体は更新が速く、拡張が依存する API が変わりうるので自動では上げず、手動で更新する
+    ignore:
+      - dependency-name: "@earendil-works/*"
+    groups:
+      npm:
+        patterns: ["*"]
