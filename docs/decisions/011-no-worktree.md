@@ -27,5 +27,5 @@
 
 ## 関連
 
-- [features/global-instructions.md](../features/global-instructions.md)
+- [features/harness-instructions.md](../features/harness-instructions.md)
 - [plan/phase-3-models-subagents.md](../plan/phase-3-models-subagents.md)、[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)

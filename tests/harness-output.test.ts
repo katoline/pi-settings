@@ -1,0 +1,169 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { Runtime } from "../agent/extensions/harness/lib/runtime.ts";
+import { FINAL_LINE, withFinalLine } from "../agent/extensions/harness/output/final-line.ts";
+import { registerOutput } from "../agent/extensions/harness/output/register.ts";
+import { config, HOME } from "./harness-helpers.ts";
+
+type Block = { type: string; text?: string };
+type Msg = { role: string; content: Block[]; stopReason?: string };
+type Handler = (event: object, ctx: object) => Promise<unknown>;
+
+const assistant = (content: unknown[], stopReason = "stop") => ({
+  role: "assistant",
+  content,
+  stopReason,
+});
+const text = (t: string) => ({ type: "text", text: t });
+
+function blocks(out: { content?: unknown } | null): Block[] {
+  assert.ok(out, "メッセージが書き換えられるはず");
+  return out.content as Block[];
+}
+
+test("最終応答の最後に、完了の 1 行を足す", () => {
+  const out = withFinalLine(assistant([text("完了しました。")]));
+  const t = blocks(out)[0]?.text ?? "";
+  assert.equal(t.split("\n").at(-1), FINAL_LINE);
+  assert.ok(t.startsWith("完了しました。"));
+});
+
+test("すでに最後の行が完了の 1 行なら、変更しない", () => {
+  assert.equal(withFinalLine(assistant([text(`報告\n\n${FINAL_LINE}\n`)])), null);
+});
+
+test("末尾の空行は整えたうえで足す", () => {
+  assert.equal(
+    blocks(withFinalLine(assistant([text("報告\n\n\n")])))[0]?.text,
+    `報告\n\n${FINAL_LINE}`,
+  );
+});
+
+test("テキストがなければ、テキストのブロックを足す", () => {
+  const out = withFinalLine(assistant([{ type: "thinking", thinking: "..." }]));
+  assert.equal(blocks(out).at(-1)?.text, FINAL_LINE);
+});
+
+test("ツール呼び出しがあるメッセージ、エラー、中断、toolUse、ユーザー発言には付けない", () => {
+  assert.equal(withFinalLine(assistant([text("x"), { type: "toolCall", name: "bash" }])), null);
+  assert.equal(withFinalLine(assistant([text("x")], "error")), null);
+  assert.equal(withFinalLine(assistant([text("x")], "aborted")), null);
+  assert.equal(withFinalLine(assistant([text("x")], "toolUse")), null);
+  assert.equal(withFinalLine({ role: "user", content: [text("x")] }), null);
+});
+
+test("最後のテキストのブロックだけを書き換え、ほかは保つ", () => {
+  const content = blocks(
+    withFinalLine(assistant([text("前"), { type: "thinking", thinking: "t" }, text("後")])),
+  );
+  assert.equal(content[0]?.text, "前");
+  assert.equal(content[2]?.text, `後\n\n${FINAL_LINE}`);
+});
+
+function setup(isSubagent = false) {
+  const handlers = new Map<string, Handler>();
+  const pi = { on: (name: string, h: Handler) => handlers.set(name, h) } as unknown as ExtensionAPI;
+  const rt: Runtime = { config, isSubagent, home: HOME, tmpdir: "/tmp" };
+  registerOutput(pi, rt);
+  const call = (name: string, event: object) => handlers.get(name)?.(event, {});
+  let seq = 0;
+  return {
+    /** 依頼の実行が始まる（input は実行中のキュー投入でも発火するので、リセットには関係しない） */
+    start: () => call("before_agent_start", { messageType: "user", prompt: "依頼" }),
+    startCustom: () => call("before_agent_start", { messageType: "custom" }),
+    input: (streamingBehavior?: string) =>
+      call("input", { type: "input", text: "x", source: "interactive", streamingBehavior }),
+    /** 実際の pi と同じく、start には args があり、end には無い */
+    tool: async (toolName: string, args: object = {}, isError = false) => {
+      const toolCallId = `c${++seq}`;
+      await call("tool_execution_start", { toolCallId, toolName, args });
+      await call("tool_execution_end", { toolCallId, toolName, isError });
+    },
+    end: (m: Msg) => call("message_end", { message: m }) as Promise<{ message: Msg } | undefined>,
+  };
+}
+
+const finalText = (r: { message: Msg } | undefined) => r?.message.content.at(-1)?.text ?? "";
+const msg = (t = "報告") => assistant([text(t)]) as Msg;
+
+test("成果物を作る操作の後の最終応答にだけ付く", async () => {
+  for (const [name, args] of [
+    ["write", {}],
+    ["edit", {}],
+    ["bash", { command: "git commit -m x" }],
+    ["bash", { command: "git -C /repo commit -m x" }],
+    ["bash", { command: "git push -u origin feat/x" }],
+    ["bash", { command: "gh pr create --title x" }],
+  ] as const) {
+    const h = setup();
+    await h.start();
+    await h.tool(name, args);
+    assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE), name);
+  }
+});
+
+test("前の依頼で編集し、新しい依頼で commit・push・PR 作成だけをしても付く", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("write");
+  await h.end(msg());
+  await h.start();
+  assert.equal(await h.end(msg("答え")), undefined);
+  await h.tool("bash", { command: "git commit -m x" });
+  await h.tool("bash", { command: "git push" });
+  await h.tool("bash", { command: "gh pr create --title x" });
+  assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+});
+
+test("質問への回答だけ・読むだけ・失敗した操作では付かない", async () => {
+  const h = setup();
+  await h.start();
+  assert.equal(await h.end(msg("答え")), undefined);
+  await h.tool("read");
+  await h.tool("bash", { command: "git status" });
+  await h.tool("write", {}, true);
+  await h.tool("bash", { command: "git commit -m x" }, true);
+  assert.equal(await h.end(msg("答え")), undefined);
+});
+
+test("ツール呼び出しを含むメッセージには付かない", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("write");
+  const m = assistant([text("続ける"), { type: "toolCall", name: "bash" }], "toolUse") as Msg;
+  assert.equal(await h.end(m), undefined);
+});
+
+test("二重には付かない", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("write");
+  assert.equal(await h.end(msg(`報告\n\n${FINAL_LINE}`)), undefined);
+});
+
+test("サブエージェントには付かない", async () => {
+  const h = setup(true);
+  await h.start();
+  await h.tool("write");
+  assert.equal(await h.end(msg()), undefined);
+});
+
+test("実行中の steer / followUp の input ではリセットされず、次の実行の開始でリセットされる", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("write");
+  await h.input("steer");
+  await h.input("followUp");
+  assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+  await h.start();
+  assert.equal(await h.end(msg("答え")), undefined);
+});
+
+test("custom メッセージによる実行の開始ではリセットしない", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("write");
+  await h.startCustom();
+  assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+});

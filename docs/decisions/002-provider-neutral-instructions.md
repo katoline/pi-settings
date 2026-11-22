@@ -24,5 +24,5 @@ pi は Codex（OpenAI）・OpenCode Go・Anthropic API のモデルを切り替�
 
 ## 関連
 
-- [features/global-instructions.md](../features/global-instructions.md)
+- [features/harness-instructions.md](../features/harness-instructions.md)
 - 取り込み後は指示を拡張の `<harness>` セクションへ移す：[plan/phase-2-instructions-output.md](../plan/phase-2-instructions-output.md)

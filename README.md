@@ -12,15 +12,14 @@ Pi coding agent の個人設定と拡張を置くリポジトリです。`agent/
 | pr スキル | 作業が終わったら、目的ごとにコミットして PR を作ります（マージはしません） | [docs/features/pr-skill.md](docs/features/pr-skill.md) |
 | git-pull スキル | `/skill:git-pull` で、カレントディレクトリのリポジトリ（外なら配下 3 階層まで）をデフォルトブランチに切り替えて fast-forward で最新にします | [docs/features/git-pull-skill.md](docs/features/git-pull-skill.md) |
 | ui-compare スキル | `/skill:ui-compare` で、最後のコミットと作業ツリーの画面をヘッドレス Chrome で撮り、修正前後を見比べる HTML を作ります | [docs/features/ui-compare-skill.md](docs/features/ui-compare-skill.md) |
-| グローバル指示 | どのディレクトリで Pi を使っても読み込まれる指示です。Codex・OpenCode Go・Anthropic API のどのモデルでも通じる書き方にしてあります | [docs/features/global-instructions.md](docs/features/global-instructions.md) |
+| 固定の指示と完了の合図 | どのディレクトリで Pi を使っても、拡張がシステムプロンプトの `<harness>` セクションに作業の約束事を差し込みます（Codex・OpenCode Go・Anthropic API のどのモデルでも通じる書き方）。成果物を作る操作をした依頼の最終応答の最後に「🚀作業が完了しました！」を書き足します | [docs/features/harness-instructions.md](docs/features/harness-instructions.md) |
 
 ## 有効にする
 
-次のリンクを張っています（張り済み）。編集後は Pi を開き直すか `/reload` すると反映されます。
+次のリンクを張っています（張り済み）。編集後は Pi を開き直すか `/reload` すると反映されます。以前張っていた `~/.pi/agent/AGENTS.md` のリンクは廃止しました（指示は拡張が渡します。消し方は [docs/setup/linking.md](docs/setup/linking.md)）。
 
 ```sh
 R=/Users/peipou/Dev/hobby/katoline-org/pi-settings
-ln -s $R/agent/AGENTS.md ~/.pi/agent/AGENTS.md
 ln -s $R/agent/extensions ~/.pi/agent/extensions
 ln -s $R/agent/skills ~/.pi/agent/skills
 ln -s $R/agent/settings.json ~/.pi/agent/settings.json
