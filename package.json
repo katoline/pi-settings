@@ -5,6 +5,11 @@
   "type": "module",
   "description": "Personal Pi coding agent settings and extensions",
   "pi": {
-    "extensions": ["./agent/extensions/usage/index.ts", "./agent/extensions/exit/index.ts"]
+    "extensions": [
+      "./agent/extensions/usage/index.ts",
+      "./agent/extensions/exit/index.ts",
+      "./agent/extensions/git-guard/index.ts"
+    ],
+    "skills": ["./agent/skills"]
   }
 }
