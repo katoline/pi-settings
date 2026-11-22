@@ -7,7 +7,7 @@ Pi coding agent の個人設定と拡張を置くリポジトリ。このファ�
 `agent/` は Pi のエージェントディレクトリ `~/.pi/agent` と同じ構成にし、`~/.pi/agent` 配下からシンボリックリンクで参照している（`AGENTS.md`・`extensions/`・`skills/`・`settings.json`）。Pi の設定ファイル・拡張・スキルはここに置き、置き場所は Pi のドキュメントのエージェントディレクトリの規約に合わせる。ここでの変更はリンク経由でそのまま手元の Pi に効く。
 
 - `agent/AGENTS.md`：Pi のグローバル指示。全ディレクトリでの Pi の作業に効く。Codex・OpenCode Go・Anthropic API のどのモデルでも通じるよう、特定のエージェント製品のツール名やモデル名を前提にしない。このリポジトリ固有の内容は書かず、本ファイルに書く
-- `agent/extensions/<名前>/index.ts`：Pi 拡張（自動で読み込まれる）。追加・削除したら `package.json` の `pi.extensions` を合わせる。判定などの純粋ロジックは別ファイルに分けて `*.test.ts` でテストする
+- `agent/extensions/<名前>/index.ts`：Pi 拡張（自動で読み込まれる）。追加・削除したら `package.json` の `pi.extensions` を合わせる。判定などの純粋ロジックは別ファイルに分け、`tests/*.test.ts` でテストする（テストは拡張のディレクトリではなく `tests/` に置く）
 - `agent/skills/<名前>/SKILL.md`：Pi のスキル
 - `agent/settings.json`：Pi のユーザー設定。Pi 自身も書き換える（モデルの切り替えなど）ので、その差分は意図したものだけコミットする
 - `agent/AGENTS.md`・`agent/skills/pr`・`agent/extensions/git-guard` は同じ運用（作業ごとに PR を自動作成し、マージは依頼されたときだけ）を支えるので、どれかを変えたら他との食い違いを確認する
@@ -36,5 +36,7 @@ Pi coding agent の個人設定と拡張を置くリポジトリ。このファ�
 ## 検証
 
 ```sh
-node --test 'agent/extensions/**/*.test.ts'
+nix develop -c npm run check
 ```
+
+devShell が有効（direnv で自動）なら `npm run check`。biome・`tsc --noEmit`・テストを順に実行する。詳細は `docs/setup/development.md`。

@@ -1,5 +1,5 @@
-import { isToolCallEventType, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { FALLBACK_DEFAULTS, judge, nextMergeRequested, type BranchInfo } from "./check.ts";
+import { type ExtensionAPI, isToolCallEventType } from "@earendil-works/pi-coding-agent";
+import { type BranchInfo, FALLBACK_DEFAULTS, judge, nextMergeRequested } from "./check.ts";
 
 /** bash で実行される git / gh コマンドのうち、事故につながるものを実行前に止める */
 export default function gitGuardExtension(pi: ExtensionAPI): void {
@@ -11,7 +11,11 @@ export default function gitGuardExtension(pi: ExtensionAPI): void {
     // 拡張が送った入力はユーザーの依頼ではないので数えない。
     // event.text は /skill:… の展開前なので、スキル本文中の「マージ」には反応しない
     if (event.source !== "extension") {
-      mergeRequested = nextMergeRequested(mergeRequested, event.text, event.streamingBehavior !== undefined);
+      mergeRequested = nextMergeRequested(
+        mergeRequested,
+        event.text,
+        event.streamingBehavior !== undefined,
+      );
     }
     return { action: "continue" };
   });
@@ -52,9 +56,15 @@ export default function gitGuardExtension(pi: ExtensionAPI): void {
         };
       }
       if (!ctx.hasUI) {
-        return { block: true, reason: `${verdict.reason}確認用の UI がないためブロックしました。ユーザーに実行を依頼してください。` };
+        return {
+          block: true,
+          reason: `${verdict.reason}確認用の UI がないためブロックしました。ユーザーに実行を依頼してください。`,
+        };
       }
-      const ok = await ctx.ui.confirm("PR マージの確認", `${verdict.reason}\n\n  ${command}\n\n実行を許可しますか？`);
+      const ok = await ctx.ui.confirm(
+        "PR マージの確認",
+        `${verdict.reason}\n\n  ${command}\n\n実行を許可しますか？`,
+      );
       if (!ok) return { block: true, reason: "ユーザーが PR のマージを拒否しました。" };
     }
     return undefined;

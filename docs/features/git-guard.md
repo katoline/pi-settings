@@ -6,7 +6,7 @@ pi が bash ツールで実行しようとする git / gh コマンドを実行�
 
 ## 関連
 
-- コード：`agent/extensions/git-guard/index.ts`（pi への接続）、`check.ts`（判定の純粋ロジック）、`check.test.ts`
+- コード：`agent/extensions/git-guard/index.ts`（pi への接続）、`check.ts`（判定の純粋ロジック）。テストは `tests/git-guard.test.ts`
 - 決定：[003](../decisions/003-auto-pr-and-merge-policy.md)
 - 置き換え予定：[plan/phase-1-guards.md](../plan/phase-1-guards.md)、[plan/phase-5-pr-tools.md](../plan/phase-5-pr-tools.md)
 

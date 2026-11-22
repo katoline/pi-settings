@@ -1,7 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
   formatAnthropicDetail,
   formatAnthropicStatus,
@@ -78,10 +78,15 @@ async function readJson(path: string): Promise<unknown> {
 }
 
 function plainSecret(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() && !value.startsWith("!") ? value.trim() : undefined;
+  return typeof value === "string" && value.trim() && !value.startsWith("!")
+    ? value.trim()
+    : undefined;
 }
 
-async function providerApiKey(ctx: ExtensionContext, provider: string): Promise<string | undefined> {
+async function providerApiKey(
+  ctx: ExtensionContext,
+  provider: string,
+): Promise<string | undefined> {
   try {
     const resolved = await ctx.modelRegistry.getProviderAuth(provider);
     return plainSecret(resolved?.auth.apiKey);
@@ -118,7 +123,10 @@ function httpMessage(status: number | "timeout" | "failed"): string {
   return `HTTP ${status}`;
 }
 
-async function loadCodex(ctx: ExtensionContext, signal: AbortSignal): Promise<ProviderState<UsageWindow[]>> {
+async function loadCodex(
+  ctx: ExtensionContext,
+  signal: AbortSignal,
+): Promise<ProviderState<UsageWindow[]>> {
   const fromPi = await providerApiKey(ctx, "openai-codex");
   let token = fromPi && !tokenExpired(fromPi) ? fromPi : undefined;
   let accountId = token ? codexAccountId(token) : undefined;
@@ -145,10 +153,15 @@ async function loadCodex(ctx: ExtensionContext, signal: AbortSignal): Promise<Pr
   const result = await requestJson(CODEX_USAGE_URL, headers, signal);
   if (!result.ok) return { kind: "error", message: httpMessage(result.status) };
   const windows = parseCodexUsage(result.payload);
-  return windows ? { kind: "ready", data: windows } : { kind: "error", message: "malformed response" };
+  return windows
+    ? { kind: "ready", data: windows }
+    : { kind: "error", message: "malformed response" };
 }
 
-async function loadGo(ctx: ExtensionContext, signal: AbortSignal): Promise<ProviderState<UsageWindow[]>> {
+async function loadGo(
+  ctx: ExtensionContext,
+  signal: AbortSignal,
+): Promise<ProviderState<UsageWindow[]>> {
   let key = await providerApiKey(ctx, "opencode-go");
   if (!key) key = plainSecret(process.env.OPENCODE_API_KEY);
   if (!key) {
@@ -158,24 +171,36 @@ async function loadGo(ctx: ExtensionContext, signal: AbortSignal): Promise<Provi
   }
   if (!key) return { kind: "missing", message: "login with /login opencode-go" };
 
-  const result = await requestJson(GO_USAGE_URL, {
-    Authorization: `Bearer ${key}`,
-    Accept: "application/json",
-    // Cloudflare rejects the default client signature on this endpoint.
-    "User-Agent": "opencode/1.0",
-  }, signal);
+  const result = await requestJson(
+    GO_USAGE_URL,
+    {
+      Authorization: `Bearer ${key}`,
+      Accept: "application/json",
+      // Cloudflare rejects the default client signature on this endpoint.
+      "User-Agent": "opencode/1.0",
+    },
+    signal,
+  );
   if (!result.ok) return { kind: "error", message: httpMessage(result.status) };
   const windows = parseOpenCodeGoUsage(result.payload);
-  return windows ? { kind: "ready", data: windows } : { kind: "error", message: "malformed response" };
+  return windows
+    ? { kind: "ready", data: windows }
+    : { kind: "error", message: "malformed response" };
 }
 
 function formatStatus(state: UsageState, anthropicCost: number | undefined): string {
-  const codex = state.codex.kind === "ready"
-    ? formatCodexStatus(state.codex.data)
-    : state.codex.kind === "loading" ? "Codex …" : "Codex !";
-  const go = state.go.kind === "ready"
-    ? formatGoStatus(state.go.data)
-    : state.go.kind === "loading" ? "Go …" : "Go !";
+  const codex =
+    state.codex.kind === "ready"
+      ? formatCodexStatus(state.codex.data)
+      : state.codex.kind === "loading"
+        ? "Codex …"
+        : "Codex !";
+  const go =
+    state.go.kind === "ready"
+      ? formatGoStatus(state.go.data)
+      : state.go.kind === "loading"
+        ? "Go …"
+        : "Go !";
   const base = `${codex} │ ${go}`;
   return anthropicCost === undefined ? base : `${base} │ ${formatAnthropicStatus(anthropicCost)}`;
 }
@@ -190,7 +215,10 @@ function formatDetails(state: UsageState, anthropicCost: number, now = Date.now(
   const lines = ["Usage"];
   const add = (title: string, state: ProviderState<UsageWindow[]>) => {
     if (state.kind === "loading") lines.push(`${title}: loading`);
-    else if (state.kind === "ready") lines.push(`${title}: ${state.data.map((window) => formatWindowDetail(window, now)).join(" · ")}`);
+    else if (state.kind === "ready")
+      lines.push(
+        `${title}: ${state.data.map((window) => formatWindowDetail(window, now)).join(" · ")}`,
+      );
     else lines.push(`${title}: ${state.message}`);
   };
   add("Codex", state.codex);

@@ -178,7 +178,8 @@ export function sumProviderCost(entries: readonly unknown[], provider = "anthrop
     }
     if (!holder || holder.provider !== provider) continue;
     const usage = holder.usage;
-    const cost = isRecord(usage) && isRecord(usage.cost) ? finiteNumber(usage.cost.total) : undefined;
+    const cost =
+      isRecord(usage) && isRecord(usage.cost) ? finiteNumber(usage.cost.total) : undefined;
     if (cost !== undefined && cost > 0) total += cost;
   }
   return total;

@@ -91,15 +91,27 @@ function resolveDir(base: string, dir: string): string {
 }
 
 /** git の値を取る大域オプション */
-const GIT_GLOBAL_WITH_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+const GIT_GLOBAL_WITH_VALUE = new Set([
+  "-C",
+  "-c",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--exec-path",
+]);
 
 /** checkout / switch の切替先ブランチ名。検出できない形は null */
 function switchTarget(sub: string, args: string[]): string | null {
   const create = sub === "checkout" ? ["-b", "-B"] : ["-c", "-C", "--create", "--force-create"];
   const i = args.findIndex((a) => create.includes(a));
-  if (i >= 0) return args[i + 1] && !args[i + 1].startsWith("-") ? args[i + 1] : null;
+  if (i >= 0) {
+    const next = args[i + 1];
+    return next && !next.startsWith("-") ? next : null;
+  }
   // switch <name> の単純形のみ（checkout <name> はファイル指定と区別できないため対象外）
-  if (sub === "switch" && args.length === 1 && !args[0].startsWith("-")) return args[0];
+  const only = args[0];
+  if (sub === "switch" && args.length === 1 && only !== undefined && !only.startsWith("-"))
+    return only;
   return null;
 }
 
@@ -109,10 +121,11 @@ export function detect(command: string, initialCwd: string): Detection[] {
   let cwd = initialCwd;
   for (const seg of splitSegments(command)) {
     let i = 0;
-    while (i < seg.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(seg[i])) i++;
+    while (i < seg.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(seg[i] ?? "")) i++;
     const words = seg.slice(i);
     if (words.length === 0) continue;
     const head = words[0];
+    if (head === undefined) continue;
 
     if (head === "cd") {
       const target = words[1];
@@ -123,12 +136,13 @@ export function detect(command: string, initialCwd: string): Detection[] {
     if (head === "git") {
       let segCwd = cwd;
       let j = 1;
-      while (j < words.length && words[j].startsWith("-")) {
+      while (j < words.length && words[j]?.startsWith("-")) {
         const w = words[j];
-        if (w === "-C" && words[j + 1] !== undefined) {
-          segCwd = resolveDir(segCwd, words[j + 1]);
+        const dir = words[j + 1];
+        if (w === "-C" && dir !== undefined) {
+          segCwd = resolveDir(segCwd, dir);
           j += 2;
-        } else if (GIT_GLOBAL_WITH_VALUE.has(w)) {
+        } else if (GIT_GLOBAL_WITH_VALUE.has(w ?? "")) {
           j += 2;
         } else {
           j += 1;
@@ -147,7 +161,7 @@ export function detect(command: string, initialCwd: string): Detection[] {
 
     if (head === "gh") {
       let j = 1;
-      while (j < words.length && words[j].startsWith("-")) j += 1;
+      while (j < words.length && words[j]?.startsWith("-")) j += 1;
       if (words[j] === "pr" && words[j + 1] === "merge") {
         result.push({ kind: "pr-merge", cwd, args: words.slice(j + 2) });
       } else if (words[j] === "api") {
@@ -178,10 +192,11 @@ function parsePush(args: string[]): PushParse {
   const p: PushParse = { force: false, del: false, noVerify: false, refspecs: [] };
   const positional: string[] = [];
   for (let i = 0; i < args.length; i++) {
-    const a = args[i];
+    const a = args[i] ?? "";
     if (a.startsWith("--")) {
       const name = a.split("=")[0];
-      if (name === "--force" || name === "--force-with-lease" || name === "--force-if-includes") p.force = true;
+      if (name === "--force" || name === "--force-with-lease" || name === "--force-if-includes")
+        p.force = true;
       else if (name === "--delete" || name === "--mirror") p.del = true;
       else if (name === "--no-verify") p.noVerify = true;
       else if (PUSH_WITH_VALUE.has(a)) i++;
@@ -200,13 +215,13 @@ function parsePush(args: string[]): PushParse {
 function parseCommit(args: string[]): { noVerify: boolean } {
   let noVerify = false;
   for (let i = 0; i < args.length; i++) {
-    const a = args[i];
+    const a = args[i] ?? "";
     if (a.startsWith("--")) {
       if (a === "--no-verify") noVerify = true;
       else if (["--message", "--file", "--author", "--date", "--template"].includes(a)) i++;
     } else if (/^-[A-Za-z]+$/.test(a)) {
       if (a.includes("n")) noVerify = true;
-      if (COMMIT_VALUE_LETTERS.includes(a[a.length - 1])) i++;
+      if (COMMIT_VALUE_LETTERS.includes(a.slice(-1))) i++;
     }
   }
   return { noVerify };
@@ -222,7 +237,10 @@ function refspecDest(spec: string): string | null {
 }
 
 /** 検出結果 1 件を判定する。ブランチ情報は必要になったときだけ getInfo で取得する */
-export async function evaluate(det: Detection, getInfo: (cwd: string) => Promise<BranchInfo | null>): Promise<Verdict> {
+export async function evaluate(
+  det: Detection,
+  getInfo: (cwd: string) => Promise<BranchInfo | null>,
+): Promise<Verdict> {
   switch (det.kind) {
     case "pr-merge":
     case "api-merge":
@@ -233,11 +251,15 @@ export async function evaluate(det: Detection, getInfo: (cwd: string) => Promise
 
     case "commit": {
       if (parseCommit(det.args).noVerify) {
-        return block("git commit の --no-verify / -n は禁止です。フックを通して、失敗したら原因を直してください。");
+        return block(
+          "git commit の --no-verify / -n は禁止です。フックを通して、失敗したら原因を直してください。",
+        );
       }
       const info = await getInfo(det.cwd);
       if (info?.current && info.defaults.includes(info.current)) {
-        return block(`既定ブランチ ${info.current} 上での commit は禁止です。作業ブランチを切ってから commit してください。`);
+        return block(
+          `既定ブランチ ${info.current} 上での commit は禁止です。作業ブランチを切ってから commit してください。`,
+        );
       }
       return { action: "allow" };
     }
@@ -245,18 +267,25 @@ export async function evaluate(det: Detection, getInfo: (cwd: string) => Promise
     case "push": {
       const p = parsePush(det.args);
       if (p.force || p.refspecs.some((r) => r.startsWith("+"))) {
-        return block("git push の force（-f / --force / --force-with-lease / + refspec）は禁止です。通常の push で解決できないか見直してください。");
+        return block(
+          "git push の force（-f / --force / --force-with-lease / + refspec）は禁止です。通常の push で解決できないか見直してください。",
+        );
       }
       if (p.del || p.refspecs.some((r) => r.startsWith(":"))) {
-        return block("git push によるリモートブランチの削除（--delete / -d / :ref / --mirror）は禁止です。削除が必要ならユーザーに依頼してください。");
+        return block(
+          "git push によるリモートブランチの削除（--delete / -d / :ref / --mirror）は禁止です。削除が必要ならユーザーに依頼してください。",
+        );
       }
       if (p.noVerify) {
-        return block("git push の --no-verify は禁止です。フックを通して、失敗したら原因を直してください。");
+        return block(
+          "git push の --no-verify は禁止です。フックを通して、失敗したら原因を直してください。",
+        );
       }
       const info = await getInfo(det.cwd);
       const defaults = info?.defaults ?? FALLBACK_DEFAULTS;
       const current = info?.current ?? null;
-      const msg = (b: string) => `既定ブランチ ${b} への push は禁止です。作業ブランチへ push し、PR 経由で取り込んでください。`;
+      const msg = (b: string) =>
+        `既定ブランチ ${b} への push は禁止です。作業ブランチへ push し、PR 経由で取り込んでください。`;
       if (p.refspecs.length === 0) {
         if (current && defaults.includes(current)) return block(msg(current));
         return { action: "allow" };
@@ -288,7 +317,8 @@ export async function judge(
   };
   for (const det of detect(command, initialCwd)) {
     if (det.kind === "switch") {
-      switched.set(det.cwd, det.args[0]);
+      const target = det.args[0];
+      if (target !== undefined) switched.set(det.cwd, target);
       continue;
     }
     const v = await evaluate(det, infoWithSwitch);

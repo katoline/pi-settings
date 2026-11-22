@@ -6,7 +6,7 @@
 
 ## 関連
 
-- コード：`agent/extensions/usage/index.ts`（pi への接続・取得）、`parse.ts`（応答の解析と書式の純粋ロジック）、`parse.test.ts`
+- コード：`agent/extensions/usage/index.ts`（pi への接続・取得）、`parse.ts`（応答の解析と書式の純粋ロジック）。テストは `tests/usage.test.ts`
 - 決定：[009](../decisions/009-anthropic-usage-session-cost.md)
 - 認証：[setup/providers.md](../setup/providers.md)
 - 統合予定：[plan/phase-6-usage-compaction.md](../plan/phase-6-usage-compaction.md)

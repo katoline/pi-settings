@@ -9,7 +9,7 @@ import {
   parseCodexUsage,
   parseOpenCodeGoUsage,
   sumProviderCost,
-} from "./parse.ts";
+} from "../agent/extensions/usage/parse.ts";
 
 const msg = (provider: string, total?: number) => ({
   type: "message",
@@ -24,7 +24,10 @@ test("sumProviderCost は Anthropic 以外を除外し usage エントリも含�
   const entries = [
     msg("anthropic", 0.1),
     msg("openai-codex", 5),
-    { type: "message", message: { role: "user", provider: "anthropic", usage: { cost: { total: 9 } } } },
+    {
+      type: "message",
+      message: { role: "user", provider: "anthropic", usage: { cost: { total: 9 } } },
+    },
     { type: "usage", provider: "anthropic", usage: { cost: { total: 0.05 } } },
     { type: "usage", provider: "openai", usage: { cost: { total: 7 } } },
   ];
@@ -32,7 +35,16 @@ test("sumProviderCost は Anthropic 以外を除外し usage エントリも含�
 });
 
 test("sumProviderCost は cost が無い・不正なエントリを 0 とみなす", () => {
-  assert.equal(sumProviderCost([msg("anthropic"), msg("anthropic", Number.NaN), null, "x", { type: "message" }]), 0);
+  assert.equal(
+    sumProviderCost([
+      msg("anthropic"),
+      msg("anthropic", Number.NaN),
+      null,
+      "x",
+      { type: "message" },
+    ]),
+    0,
+  );
 });
 
 test("formatUsd は小数 2 桁に丸める", () => {
@@ -49,14 +61,24 @@ test("Anthropic の表示文言", () => {
 });
 
 test("parses Codex 5-hour and weekly windows without assuming order", () => {
-  const windows = parseCodexUsage({
-    rate_limit: {
-      allowed: true,
-      primary_window: { used_percent: 9, limit_window_seconds: 604_800, reset_at: 1_700_000_000 },
-      secondary_window: { used_percent: 41, limit_window_seconds: 18_000, reset_after_seconds: 120 },
+  const windows = parseCodexUsage(
+    {
+      rate_limit: {
+        allowed: true,
+        primary_window: { used_percent: 9, limit_window_seconds: 604_800, reset_at: 1_700_000_000 },
+        secondary_window: {
+          used_percent: 41,
+          limit_window_seconds: 18_000,
+          reset_after_seconds: 120,
+        },
+      },
     },
-  }, 1_600_000_000_000);
-  assert.deepEqual(windows?.map((window) => window.id), ["7d", "5h"]);
+    1_600_000_000_000,
+  );
+  assert.deepEqual(
+    windows?.map((window) => window.id),
+    ["7d", "5h"],
+  );
   assert.equal(windows?.[1]?.usedPercent, 41);
   assert.equal(formatCodexStatus(windows ?? []), "Codex 5h 41% 7d 9%");
 });
@@ -89,7 +111,11 @@ test("marks only the exhausted Codex window as limited", () => {
       allowed: false,
       limit_reached: true,
       primary_window: { used_percent: 20, limit_window_seconds: 18_000, reset_at: 1_700_000_000 },
-      secondary_window: { used_percent: 100, limit_window_seconds: 604_800, reset_at: 1_700_000_000 },
+      secondary_window: {
+        used_percent: 100,
+        limit_window_seconds: 604_800,
+        reset_at: 1_700_000_000,
+      },
     },
   });
   assert.equal(formatCodexStatus(windows ?? []), "Codex 5h 20% 7d 100%!");
@@ -100,7 +126,11 @@ test("marks every Codex window as limited when blocked with no exhausted window"
     rate_limit: {
       limit_reached: true,
       primary_window: { used_percent: 20, limit_window_seconds: 18_000, reset_at: 1_700_000_000 },
-      secondary_window: { used_percent: 30, limit_window_seconds: 604_800, reset_at: 1_700_000_000 },
+      secondary_window: {
+        used_percent: 30,
+        limit_window_seconds: 604_800,
+        reset_at: 1_700_000_000,
+      },
     },
   });
   assert.equal(formatCodexStatus(windows ?? []), "Codex 5h 20%! 7d 30%!");
