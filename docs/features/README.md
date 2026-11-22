@@ -8,7 +8,7 @@
 
 | 機能 | ファイル | 種類 | 置き場所 |
 | --- | --- | --- | --- |
-| git-guard | [git-guard.md](git-guard.md) | 拡張 | `agent/extensions/git-guard/` |
+| ハーネスのガード | [harness-guards.md](harness-guards.md) | 拡張（ガードだけを登録。残りはフェーズ 2 以降） | `agent/extensions/harness/` |
 | 利用状況（usage） | [usage.md](usage.md) | 拡張 | `agent/extensions/usage/` |
 | /exit | [exit.md](exit.md) | 拡張 | `agent/extensions/exit/` |
 | pr スキル | [pr-skill.md](pr-skill.md) | スキル | `agent/skills/pr/` |

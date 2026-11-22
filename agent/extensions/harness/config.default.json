@@ -1,0 +1,7 @@
+{
+  "workRoots": ["~/Dev/kaishi", "~/Dev/seino914", "~/Dev/hobby", "~/Dev/humanoid"],
+  "tempRoots": ["$TMPDIR", "/tmp/claude-*", "/tmp/pi-*"],
+  "protectedGlobalPaths": ["~/Dev/seino914/dotfiles"],
+  "protectedHarnessPaths": ["~/.pi/agent"],
+  "defaultBranches": ["main", "master"]
+}
