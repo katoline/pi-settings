@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { Plan } from "../agent/extensions/harness/flow/plan.ts";
 import type { Runtime } from "../agent/extensions/harness/lib/runtime.ts";
 import { FINAL_LINE, withFinalLine } from "../agent/extensions/harness/output/final-line.ts";
 import { registerOutput } from "../agent/extensions/harness/output/register.ts";
@@ -61,14 +62,15 @@ test("最後のテキストのブロックだけを書き換え、ほかは保�
   assert.equal(content[2]?.text, `後\n\n${FINAL_LINE}`);
 });
 
-function setup(isSubagent = false) {
+function setup(isSubagent = false, over: Partial<Runtime> = {}) {
   const handlers = new Map<string, Handler>();
   const pi = { on: (name: string, h: Handler) => handlers.set(name, h) } as unknown as ExtensionAPI;
-  const rt: Runtime = runtime({ isSubagent });
+  const rt: Runtime = runtime({ isSubagent, ...over });
   registerOutput(pi, rt);
   const call = (name: string, event: object) => handlers.get(name)?.(event, {});
   let seq = 0;
   return {
+    rt,
     /** 依頼の実行が始まる（input は実行中のキュー投入でも発火するので、リセットには関係しない） */
     start: () => call("before_agent_start", { messageType: "user", prompt: "依頼" }),
     startCustom: () => call("before_agent_start", { messageType: "custom" }),
@@ -200,4 +202,64 @@ test("読み取り専用だけ・書き込み可でも失敗・isError・details
   await h.tool("subagent", {}, false, { content: [], details: undefined }); // 上限超過などの断り
   await h.tool("subagent", {}, false); // 結果なし
   assert.equal(await h.end(msg("答え")), undefined);
+});
+
+// ---- 計画の完了（plan_report を呼んだ）----
+const plan = (statuses: ("pending" | "in_progress" | "done")[], confirmed = true): Plan => ({
+  version: 1,
+  goal: "g",
+  confirmed,
+  items: statuses.map((status, i) => ({
+    id: String(i),
+    title: "t",
+    acceptance: "a",
+    kind: "task" as const,
+    review: false,
+    status,
+    cycles: 0,
+  })),
+  paused: false,
+  continuations: 0,
+  startedAt: 0,
+  progressKey: "",
+  noProgress: 0,
+  decisions: [],
+  verifications: [],
+  reviews: [],
+  prs: [],
+});
+
+test("計画の完了報告（plan_report）を出した依頼の最終応答には、ファイルを変更していなくても付く", async () => {
+  const h = setup(false, { plan: plan(["done"]), planCompleted: true });
+  await h.start(); // 依頼が始まると戻る
+  assert.equal(h.rt.planCompleted, false);
+  assert.equal(await h.end(msg()), undefined);
+  h.rt.planCompleted = true; // この依頼の中で plan_report が呼ばれた
+  assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+});
+
+test("確定した計画に未着手・進行中の項目がある間は、変更をしていても付けない", async () => {
+  for (const statuses of [["done", "in_progress"], ["pending"]] as const) {
+    const h = setup(false, { plan: plan([...statuses]) });
+    await h.start();
+    await h.tool("write");
+    assert.equal(await h.end(msg("着手しました")), undefined, statuses.join());
+  }
+  // 項目が済めば付く。未確定の計画は、判定に影響しない
+  const h = setup(false, { plan: plan(["done", "done"]) });
+  await h.start();
+  await h.tool("write");
+  assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+  const unconfirmed = setup(false, { plan: plan(["pending"], false) });
+  await unconfirmed.start();
+  await unconfirmed.tool("write");
+  assert.ok(finalText(await unconfirmed.end(msg())).endsWith(FINAL_LINE));
+});
+
+test("計画の完了でも、サブエージェントには付かない。完了報告のない・失敗した計画でも成果物がなければ付かない", async () => {
+  const sub = setup(true, { plan: plan(["done"]), planCompleted: true });
+  assert.equal(await sub.end(msg()), undefined);
+  const none = setup(false, { plan: plan(["done"]) });
+  await none.start();
+  assert.equal(await none.end(msg("答え")), undefined);
 });

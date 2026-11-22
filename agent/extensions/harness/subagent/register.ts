@@ -1,23 +1,10 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import type { Runtime } from "../lib/runtime.ts";
-import { type AgentDef, isReadOnlyAgent, loadAgents } from "./agents.ts";
-import {
-  abortedResult,
-  type ChildResult,
-  isFailed,
-  piInvocation,
-  runChild,
-  runScheduled,
-  subagentTotals,
-} from "./child.ts";
-import { formatReport, resultLine, startLine } from "./format.ts";
-
-const extensionPath = fileURLToPath(new URL("../index.ts", import.meta.url));
+import { loadAgents } from "./agents.ts";
+import { type ChildResult, subagentTotals } from "./child.ts";
+import { describeAgents, runSubagentTasks } from "./run.ts";
 
 const TaskSchema = Type.Object({
   agent: Type.String({ description: "役割の名前(scout / planner / worker / reviewer など)" }),
@@ -38,13 +25,6 @@ const TaskSchema = Type.Object({
 export function registerSubagent(pi: ExtensionAPI, rt: Runtime): void {
   if (rt.isSubagent) return; // 子は、さらに子を作らない(再帰の防止)
   const agentsDir = path.join(rt.agentDir, "agents");
-  const describeAgents = (agents: AgentDef[]) =>
-    agents.length
-      ? agents
-          .map((a) => `${a.name}(${a.description}${isReadOnlyAgent(a) ? "" : "。書き込み可"})`)
-          .join("、")
-      : "(役割の定義がありません)";
-
   // 件数(上限の判定用)と費用の合計は、セッションの枝に残る結果から数え直す(再開・リロード・フォーク・ツリーの移動)
   const restore = (ctx: ExtensionContext) => {
     const totals = subagentTotals(ctx.sessionManager.getBranch());
@@ -75,85 +55,13 @@ export function registerSubagent(pi: ExtensionAPI, rt: Runtime): void {
     }),
     executionMode: "sequential",
     async execute(_id, params, signal, onUpdate, ctx) {
-      const limits = rt.config.subagent;
-      const reply = (text: string) => ({
-        content: [{ type: "text" as const, text }],
-        details: undefined,
-      });
-      if (params.tasks.length > limits.maxTasks) {
-        return reply(`一度に任せられるのは ${limits.maxTasks} 件までです。`);
-      }
-      if (rt.subagentSpawns + params.tasks.length > limits.maxTotal) {
-        return reply(
-          `このセッションで起動できるサブエージェントの上限(${limits.maxTotal})に達しました。計画を見直してください。`,
-        );
-      }
-      const agents = loadAgents(agentsDir);
-      const unknown = params.tasks.find((t) => !agents.some((a) => a.name === t.agent));
-      if (unknown)
-        return reply(`未知の役割: ${unknown.agent}。使える役割: ${describeAgents(agents)}`);
-      rt.subagentSpawns += params.tasks.length;
-
-      const tmp = mkdtempSync(path.join(tmpdir(), "harness-sub-"));
-      const running = new Map<number, string>();
-      const showWidget = () =>
-        ctx.ui.setWidget("harness-subagents", running.size ? [...running.values()] : undefined);
-      const invocation = piInvocation();
-      const agentOf = (name: string) => agents.find((a) => a.name === name) as AgentDef;
-      try {
-        const results = await runScheduled(
-          params.tasks,
-          limits.maxConcurrency,
-          (t) => isReadOnlyAgent(agentOf(t.agent)),
-          async (t, i) => {
-            const agent = agentOf(t.agent);
-            // 待っている間に中断されたら、子を起動せず、通知もせずに、中断の結果を返す
-            if (signal?.aborted)
-              return abortedResult({ agent, title: t.title, model: rt.subagentModel });
-            const roleFile = path.join(tmp, `${i}-${agent.name}.md`);
-            writeFileSync(roleFile, agent.instructions, { mode: 0o600 });
-            const model = agent.model ?? rt.subagentModel;
-            const start = startLine(model, t.title);
-            running.set(i, start);
-            showWidget();
-            ctx.ui.notify(start, "info");
-            onUpdate?.({
-              content: [{ type: "text", text: [...running.values()].join("\n") }],
-              details: undefined,
-            });
-            const result = await runChild(
-              {
-                agent,
-                task: t.task,
-                title: t.title,
-                model: rt.subagentModel,
-                extensionPath,
-                roleFile,
-                cwd: ctx.cwd,
-                parentSessionId: ctx.sessionManager.getSessionId(),
-              },
-              {
-                invocation,
-                ...(signal ? { signal } : {}),
-                timeoutMs: limits.timeoutSeconds * 1000,
-              },
-            );
-            rt.childCost += result.usage.cost;
-            running.delete(i);
-            showWidget();
-            ctx.ui.notify(resultLine(result), isFailed(result) ? "warning" : "info");
-            return result;
-          },
-        );
-        return {
-          content: [{ type: "text" as const, text: formatReport(results) }],
-          details: results satisfies ChildResult[],
-        };
-      } finally {
-        running.clear();
-        showWidget();
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const outcome = await runSubagentTasks(rt, params.tasks, ctx, signal, onUpdate);
+      if (outcome.kind === "refused")
+        return { content: [{ type: "text" as const, text: outcome.text }], details: undefined };
+      return {
+        content: [{ type: "text" as const, text: outcome.text }],
+        details: outcome.results satisfies ChildResult[],
+      };
     },
   });
 }

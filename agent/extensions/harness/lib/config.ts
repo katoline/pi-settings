@@ -17,6 +17,19 @@ export interface HarnessConfig {
   /** 起動時にメインのモデルを選ぶダイアログを出す（既定 false。`/models` で選ぶ） */
   selectModelOnStartup: boolean;
   subagent: SubagentLimits;
+  flow: FlowLimits;
+}
+
+/** 計画・自律ループの上限 */
+export interface FlowLimits {
+  /** 項目ごとの、差し戻し（検証の失敗・レビューの却下）の上限（周） */
+  maxCyclesPerItem: number;
+  /** 自動の継続の上限（回） */
+  maxContinuations: number;
+  /** 計画を始めてからの時間の上限（分） */
+  maxMinutes: number;
+  /** 進捗がないまま続けてよい回数 */
+  maxNoProgress: number;
 }
 
 export interface SubagentLimits {
@@ -31,6 +44,8 @@ export interface SubagentLimits {
 }
 
 const SUBAGENT_KEYS = ["maxTasks", "maxConcurrency", "timeoutSeconds", "maxTotal"] as const;
+
+const FLOW_KEYS = ["maxCyclesPerItem", "maxContinuations", "maxMinutes", "maxNoProgress"] as const;
 
 const KEYS = [
   "workRoots",
@@ -90,6 +105,13 @@ export function loadConfig(
           for (const key of SUBAGENT_KEYS) {
             const v = sub[key];
             if (isPositiveInt(v)) merged.subagent[key] = v;
+          }
+        }
+        if (o.flow && typeof o.flow === "object") {
+          const flow = o.flow as Record<string, unknown>;
+          for (const key of FLOW_KEYS) {
+            const v = flow[key];
+            if (isPositiveInt(v)) merged.flow[key] = v;
           }
         }
       }

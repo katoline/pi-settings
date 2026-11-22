@@ -104,3 +104,56 @@ test("壊れた値（boolean でない・正の整数でない・オブジェク
   // 読み込みのたびに、既定の値は共有されない（上書きが次の読み込みに残らない）
   assert.equal(loadConfig("/Users/u", path.join(tmp, "none.json"), {}).subagent.maxTotal, 64);
 });
+
+test("flow の上限は既定の値（差し戻し 3 周・継続 200 回・240 分・進捗なし 3 回）", () => {
+  const c = loadConfig("/Users/u", path.join(tmp, "none.json"), {});
+  assert.deepEqual(c.flow, {
+    maxCyclesPerItem: 3,
+    maxContinuations: 200,
+    maxMinutes: 240,
+    maxNoProgress: 3,
+  });
+});
+
+test("flow の上書き（一部のキーだけでもよい。subagent の上書きと混ざらない）", () => {
+  const f = path.join(tmp, "flow.json");
+  writeFileSync(
+    f,
+    JSON.stringify({ flow: { maxContinuations: 50, maxMinutes: 30 }, subagent: { maxTotal: 7 } }),
+  );
+  const c = loadConfig("/Users/u", f, {});
+  assert.deepEqual(c.flow, {
+    maxCyclesPerItem: 3,
+    maxContinuations: 50,
+    maxMinutes: 30,
+    maxNoProgress: 3,
+  });
+  assert.equal(c.subagent.maxTotal, 7);
+});
+
+test("flow の壊れた値（0・負・小数・文字列・null・配列）は既定のまま", () => {
+  const f = path.join(tmp, "flow-bad.json");
+  writeFileSync(
+    f,
+    JSON.stringify({
+      flow: { maxCyclesPerItem: 0, maxContinuations: -1, maxMinutes: 1.5, maxNoProgress: "3" },
+    }),
+  );
+  assert.deepEqual(loadConfig("/Users/u", f, {}).flow, {
+    maxCyclesPerItem: 3,
+    maxContinuations: 200,
+    maxMinutes: 240,
+    maxNoProgress: 3,
+  });
+  for (const flow of [null, [1, 2], "x", 5]) {
+    writeFileSync(f, JSON.stringify({ flow }));
+    assert.equal(loadConfig("/Users/u", f, {}).flow.maxContinuations, 200);
+  }
+});
+
+test("loadConfig を重ねて呼んでも、flow の上書きは持ち越さない", () => {
+  const f = path.join(tmp, "flow-iso.json");
+  writeFileSync(f, JSON.stringify({ flow: { maxNoProgress: 9 } }));
+  assert.equal(loadConfig("/Users/u", f, {}).flow.maxNoProgress, 9);
+  assert.equal(loadConfig("/Users/u", path.join(tmp, "none.json"), {}).flow.maxNoProgress, 3);
+});
