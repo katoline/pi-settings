@@ -71,10 +71,10 @@ test("実際の Pi で、ガード・計画・自律ループ・最終行が動�
   ]) {
     assert.ok(requests[0]?.tools.includes(tool), tool);
   }
-  // PR のツールはフェーズ 5。worktree のツールは持たない
-  assert.ok(
-    !requests[0]?.tools.some((t) => t.startsWith("harness_pr") || t === "harness_worktree"),
-  );
+  // PR の作成のツールはある。マージのツールは、依頼が無い実行では出ない。worktree のツールは持たない
+  assert.ok(requests[0]?.tools.includes("harness_pr_create"));
+  assert.ok(!requests[0]?.tools.includes("harness_pr_merge"));
+  assert.ok(!requests[0]?.tools.includes("harness_worktree"));
 
   // 5. 完了: すべての項目が済んだら、完了報告を促し、固定の形の報告を作る
   assert.ok(

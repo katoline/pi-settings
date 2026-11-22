@@ -27,6 +27,17 @@ export interface Runtime {
   plan: Plan | undefined;
   /** 計画の完了報告（`plan_report`）を出した。完了の合図の条件。新しい依頼・計画の確定で戻る */
   planCompleted: boolean;
+  /**
+   * ユーザーの直近の入力が、マージを依頼している（「マージ」「merge」を含む）。`harness_pr_merge` を
+   * ツール一覧に出す条件。`/skill:` 展開前の生の入力で判定する（`flow/pr-tools.ts` が更新する）
+   */
+  mergeRequested: boolean;
+  /**
+   * この実行の中で、ユーザーが `harness_pr_merge` の確認ダイアログを拒否した。以後のその実行では、
+   * ダイアログを出さずに止める(自律ループが呼び直して、ダイアログが繰り返し出ないように)。
+   * `agent_settled` と `/plan resume` で `mergeRequested` と一緒に戻す
+   */
+  mergeDeclined: boolean;
 }
 
 export function createRuntime(env: NodeJS.ProcessEnv = process.env): Runtime {
@@ -45,6 +56,8 @@ export function createRuntime(env: NodeJS.ProcessEnv = process.env): Runtime {
     childCost: 0,
     plan: undefined,
     planCompleted: false,
+    mergeRequested: false,
+    mergeDeclined: false,
   };
 }
 

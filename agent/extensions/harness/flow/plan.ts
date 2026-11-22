@@ -57,6 +57,8 @@ export interface PrRecord {
   url: string;
   title: string;
   merged: boolean;
+  /** PR を作るときに知らせた注意(既定ブランチが未保護など。完了報告に載せる) */
+  warning?: string;
 }
 
 export interface Plan {

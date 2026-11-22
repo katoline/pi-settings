@@ -1,13 +1,6 @@
 import type { Invocation } from "../lib/shell.ts";
 import type { GuardInput } from "../lib/types.ts";
-import {
-  ALLOW,
-  block,
-  blockWithHandoff,
-  combine,
-  mergeGate,
-  type Verdict,
-} from "../lib/verdict.ts";
+import { ALLOW, block, blockWithHandoff, combine, type Verdict } from "../lib/verdict.ts";
 
 export interface GitCall {
   sub: string;
@@ -327,6 +320,8 @@ export function checkGitCall(call: GitCall, input: GuardInput): Verdict {
 
 const PR_WRITE = new Set([
   "create",
+  // `gh pr new` は `create` の別名
+  "new",
   "edit",
   "merge",
   "ready",
@@ -340,7 +335,13 @@ const PR_WRITE = new Set([
 ]);
 const GH_BLOCKED_GROUPS = new Set(["secret", "variable", "ruleset", "ssh-key", "gpg-key", "auth"]);
 
-const MERGE_REASON = "PR のマージを実行しようとしています。";
+const MERGE_BLOCK =
+  "bash からの PR のマージ（`gh pr merge`・`gh api` でのマージ）は、依頼の有無にかかわらず禁止です。ユーザーが「マージ」を依頼した実行では、専用ツール `harness_pr_merge` が使えます（確認ダイアログが出ます）。依頼が無いときは、マージせず PR の URL を報告してください。";
+const PR_WRITE_BLOCK =
+  "bash からの PR の作成・更新（`gh pr create`（別名 `gh pr new`）/ `gh pr edit`・`gh api` での PR の書き込み）は禁止です。コミットを済ませたうえで、専用ツール `harness_pr_create` を使ってください（push も行い、既にある PR は更新します）。";
+
+/** `gh api` のパスが PR の作成・更新（`…/pulls`・`…/pulls/<番号>`）か */
+const isPullsPath = (w: string) => /(^|\/)pulls(\/\d+)?\/?(\?.*)?$/.test(w);
 
 export function checkGh(inv: Invocation, input: GuardInput): Verdict {
   const words = inv.args.map((w) => w.value);
@@ -351,11 +352,13 @@ export function checkGh(inv: Invocation, input: GuardInput): Verdict {
   if (input.env.isSubagent && group === "pr" && action && PR_WRITE.has(action)) {
     return block(subagentReason(`\`gh pr ${action}\``));
   }
-  // マージは依頼ゲートつき（決定 003）。依頼の有無の判定と確認ダイアログは register.ts
-  if (group === "pr" && action === "merge") return mergeGate(MERGE_REASON);
+  // マージは常に拒否し、専用ツールへ誘導する（依頼の判定と確認ダイアログは harness_pr_merge。決定 003）
+  if (group === "pr" && action === "merge") return block(MERGE_BLOCK);
+  if (group === "pr" && (action === "create" || action === "new" || action === "edit"))
+    return block(PR_WRITE_BLOCK);
   if (group === "pr") return ALLOW;
   if (group === "api") {
-    if (words.some((w) => /\/pulls\/\d+\/merge/.test(w))) return mergeGate(MERGE_REASON);
+    if (words.some((w) => /\/pulls\/\d+\/merge/.test(w))) return block(MERGE_BLOCK);
     // メソッドが GET と明示されていれば、`-f` / `-F`（GET ではクエリ）があっても読み取り
     const explicitGet = words.some(
       (w, i) =>
@@ -379,7 +382,7 @@ export function checkGh(inv: Invocation, input: GuardInput): Verdict {
       }
       if (words.includes("--input") || bodies.some((b) => /mutation/i.test(b.value))) {
         return block(
-          "`gh api graphql` の mutation（書き込み）は禁止です。`gh pr` などの専用のコマンドを使ってください。",
+          "`gh api graphql` の mutation（書き込み）は禁止です。PR の作成・更新は `harness_pr_create`、マージは（依頼されたときだけ）`harness_pr_merge` を使ってください。",
         );
       }
       return ALLOW;
@@ -394,8 +397,9 @@ export function checkGh(inv: Invocation, input: GuardInput): Verdict {
           w === "-f" || w === "-F" || w === "--field" || w === "--raw-field" || w === "--input",
       );
     if (mutating) {
+      if (words.some(isPullsPath)) return block(PR_WRITE_BLOCK);
       return block(
-        "`gh api` による書き込み（POST・PUT・PATCH・DELETE）は禁止です。`gh pr` などの専用のコマンドを使ってください。",
+        "`gh api` による書き込み（POST・PUT・PATCH・DELETE）は禁止です。PR の作成・更新は `harness_pr_create` を使ってください。",
       );
     }
     return ALLOW;

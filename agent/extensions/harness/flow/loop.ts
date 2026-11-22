@@ -94,6 +94,8 @@ export function continuationMessage(plan: Plan, maxCycles: number): string {
     `差し戻しが ${maxCycles} 周で収まらない項目は、ハーネスが未完了にして、次へ進める。`,
     "計画で決めていない判断は、計画の方針に沿う妥当な既定で進め、plan_note で記録する。",
     "ユーザーにしかできないことは、plan_update の deferred(理由つき)で保留にして、他の項目を進める。",
+    "PR の項目は、先に commit を済ませ(1 コミット = 1 つの目的)、検証・レビューが済んでから harness_pr_create で作る(push も行う)。マージは、ユーザーが依頼したときだけ harness_pr_merge(確認ダイアログが出る。bash の gh pr / git push は使わない)。",
+    "マージの項目は計画の最後に置く。着手時に plan_update で in_progress にしてから harness_pr_merge を呼び、マージが済んだら、その結果を根拠に done にする(未着手・進行中の項目が残っていると、マージは止まる。進行中で数えないのは、計画の最後の項目だけ)。harness_pr_merge が使えない実行では、マージの項目を deferred(ユーザーがもう一度マージを依頼する必要がある)にする。確認ダイアログで拒否されたとき・ゲートで止められて、この実行の中で解消できないときも、呼び直さずに deferred(理由: ユーザーが拒否した/止めた理由)にして、残りを進める。",
   ].join("\n");
 }
 

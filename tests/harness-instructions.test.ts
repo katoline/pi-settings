@@ -37,12 +37,12 @@ test("サブエージェントでは subagent.md が入る", async () => {
   assert.match(sections?.harness ?? "", /変更ファイル/);
 });
 
-test("main.md は、計画・検証・レビューのツールを書き、まだ無いもの（worktree・PR のツール・pi --print の手順）に触れない", () => {
+test("main.md は、計画・検証・レビュー・PR のツールを書き、無いもの（worktree・pr スキル・pi --print の手順）に触れない", () => {
   const main = loadInstructions("main");
   assert.doesNotMatch(main, /作業用worktree/);
   assert.doesNotMatch(main, /完了の合図/);
   assert.doesNotMatch(main, /pi --print/);
-  for (const name of ["harness_pr_", "harness_worktree"]) {
+  for (const name of ["harness_worktree", "skills/pr", "`pr` スキル"]) {
     assert.ok(!main.includes(name), name);
   }
   for (const name of [
@@ -53,8 +53,14 @@ test("main.md は、計画・検証・レビューのツールを書き、まだ
     "plan_report",
     "harness_verify",
     "harness_review",
+    "harness_pr_create",
+    "harness_pr_merge",
   ]) {
     assert.ok(main.includes(name), name);
+  }
+  // pr スキルにあったルールを持っている
+  for (const rule of [/1 コミット = 1 つの目的/, /`git add -p`/, /履歴.*文体/, /秘密ファイル/]) {
+    assert.match(main, rule);
   }
   assert.match(main, /自分で判断したこと/);
   // ファイルを変更しない依頼では、計画を作らない

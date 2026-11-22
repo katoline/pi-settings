@@ -36,6 +36,8 @@ export function runtime(over: Partial<Runtime> = {}): Runtime {
     childCost: 0,
     plan: undefined,
     planCompleted: false,
+    mergeRequested: false,
+    mergeDeclined: false,
     ...over,
   };
 }

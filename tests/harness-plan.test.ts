@@ -415,10 +415,12 @@ test("registerFlow: メインには計画・検証・レビューのツールと
     "plan_report",
     "harness_verify",
     "harness_review",
+    "harness_pr_create",
+    "harness_pr_merge",
   ])
     assert.ok(main.tools.includes(t), t);
   assert.deepEqual(main.commands, ["plan"]);
-  assert.ok(!main.tools.some((t) => t.startsWith("harness_pr")));
+  assert.ok(!main.tools.includes("harness_worktree"));
 
   const sub = fakePi();
   registerFlow(sub.pi, runtime({ isSubagent: true }));
