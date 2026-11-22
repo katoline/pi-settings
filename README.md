@@ -1,6 +1,6 @@
 # pi-settings
 
-Pi coding agent の個人設定と拡張を置くリポジトリです。`agent/` は Pi のエージェントディレクトリ `~/.pi/agent` と同じ構成にしてあり、中身を `~/.pi/agent` 配下へシンボリックリンクして使います。いま張っているのは `AGENTS.md` だけで、拡張のリンクはまだ張っていません。
+Pi coding agent の個人設定と拡張を置くリポジトリです。`agent/` は Pi のエージェントディレクトリ `~/.pi/agent` と同じ構成にしてあり、中身を `~/.pi/agent` 配下へシンボリックリンクして使います（「有効にする」節）。
 
 ## 利用状況
 
@@ -26,25 +26,44 @@ Pi に保存された資格情報は Pi の `getProviderAuth` 経由で取得す
 
 `agent/extensions/exit` は `/quit` と同じ終了処理を `/exit` でも呼べるようにします。エージェントの実行中は、終わってから終了します。
 
-## 指示ファイル
+## git-guard
+
+`agent/extensions/git-guard` は、Pi が bash で実行する git / gh コマンドを実行前に検査します。Pi には作業が終わるたびに PR まで自動で作らせる運用なので（`agent/AGENTS.md`）、その事故を止める役です。
+
+| コマンド | 扱い |
+| --- | --- |
+| 既定ブランチ（`origin/HEAD` の指す先。取れなければ `main` / `master`）への commit・push | ブロック |
+| force push（`-f` / `--force` / `--force-with-lease` / `+refspec`）、push での削除（`-d` / `--delete` / `:ref` / `--mirror`）、`--no-verify` | ブロック |
+| `gh pr merge`、`gh api` での `/pulls/<番号>/merge` | ユーザーの入力に「マージ」「merge」が無ければ、確認ダイアログを出さずにブロックする。あれば確認ダイアログを出し、許可したときだけ実行する（UI のない `--print` などではブロック） |
+
+「マージ」「merge」の判定に使うのは、そのとき実行中の依頼（待機中に入力した文。実行中に追加入力した文も含む）で、`/skill:…` を展開する前の文字列です。普段の作業中に pi が勝手にマージしようとしても、確認ダイアログは出ずに止まります。マージさせたいときは「<PR> をマージして」のように、その一文で依頼してください（pi が聞き返してきて「はい」とだけ答えると、その返事には「マージ」が無いので止まります。pi にはマージ前に聞き返さないよう指示しています）。「マージはしないで」のような否定文でも語が含まれていれば確認ダイアログが出ますが、そこで拒否すれば実行されません。
+
+同じコマンド内で `git checkout -b` / `git switch -c` / `git switch <名前>` したあとの commit・push は、切り替え後のブランチで判定します。
+
+事故防止のための検査で、実行前のコマンド文字列から推測しているだけです。次の形は検査の対象外です（既知の制約）。
+
+- `bash -c` やサブシェルの中に書いたコマンド、変数展開
+- 同じコマンド内での `-b` なしの `git checkout <名前>` による切り替え（例：`git checkout main && git merge feat/x && git push` は止まらない）
+- 切り替えたあと、同じリポジトリのサブディレクトリへ `cd` してからの commit（切り替え前のブランチで判定するので、誤って止めることがある）
+
+既定ブランチへの push を確実に防ぐには、GitHub 側のブランチ保護（ruleset）を併用します。
+
+## 指示ファイルとスキル
 
 | ファイル | 効く範囲 |
 | --- | --- |
-| `agent/AGENTS.md` | Pi のグローバル指示。`~/.pi/agent/AGENTS.md` からシンボリックリンクで参照し、どのディレクトリで Pi を使っても読み込まれる |
+| `agent/AGENTS.md` | Pi のグローバル指示。どのディレクトリで Pi を使っても読み込まれる。Codex・OpenCode Go・Anthropic API のどのモデルで使っても通じる書き方にしてある |
+| `agent/skills/pr/SKILL.md` | 作業が終わったら目的ごとにコミットし、push して PR を作る（既存の PR は説明を更新する）手順。マージはしない |
 | `AGENTS.md`（`CLAUDE.md` はこれへのリンク） | このリポジトリで作業するときだけの指示 |
 
-グローバル指示は次のリンクで有効にしています（張り済み）。編集後は Pi で `/reload` すると反映されます。
+## 有効にする
+
+`AGENTS.md` と、拡張・スキルのディレクトリを丸ごとリンクしています（張り済み）。`agent/extensions` と `agent/skills` に足したものは、そのまま Pi に読み込まれます。
 
 ```sh
 ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/AGENTS.md ~/.pi/agent/AGENTS.md
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/extensions ~/.pi/agent/extensions
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/skills ~/.pi/agent/skills
 ```
 
-## あとから有効にする
-
-```sh
-mkdir -p ~/.pi/agent/extensions
-ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/extensions/usage ~/.pi/agent/extensions/usage
-ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/agent/extensions/exit ~/.pi/agent/extensions/exit
-```
-
-Pi を開き直すか `/reload` すると読み込まれます。
+編集後は Pi を開き直すか `/reload` すると反映されます。リンクで有効にしているので、このリポジトリを `pi install` でパッケージとしても入れると拡張が二重に読み込まれます（`package.json` の `pi` 欄はパッケージとして配る場合のためのものです）。
