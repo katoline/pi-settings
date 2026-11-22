@@ -1,0 +1,10 @@
+{
+  "name": "pi-settings",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal Pi coding agent settings and extensions",
+  "pi": {
+    "extensions": ["./extensions/usage/index.ts", "./extensions/exit/index.ts"]
+  }
+}

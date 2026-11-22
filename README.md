@@ -1,1 +1,37 @@
 # pi-settings
+
+Pi coding agent の個人設定と拡張を置くリポジトリです。ここで実装し、あとから `~/.pi/agent` へシンボリックリンクして使います。リンクはまだ張っていません。
+
+## 利用状況
+
+`extensions/usage` がフッターに次を出します。
+
+| プロバイダー | 表示 |
+| --- | --- |
+| Codex | 5時間・週間の使用率 |
+| OpenCode Go | 5時間・週間・月間の使用率 |
+
+`%` は各 API が返す使用率です。`/usage` でリセットまでの時間と取得できなかった理由を見られます。
+
+Codex の 5時間枠は `limit_window_seconds = 18000`、週間枠は `604800` で判定します。その枠がないプランでは、代わりに返ってきた枠（例: 30日）を出します。
+
+### 認証
+
+Pi に保存された資格情報は Pi の `getProviderAuth` 経由で取得するため、OAuth の期限が近いと Pi 自身が通常どおり更新します。Pi 以外（`~/.codex/auth.json`、`OPENCODE_API_KEY`）は読み取るだけで、更新しません。
+
+- Codex: Pi の `openai-codex`、なければ `$CODEX_HOME/auth.json` または `~/.codex/auth.json`
+- OpenCode Go: Pi の `opencode-go`、なければ `OPENCODE_API_KEY`
+
+## /exit
+
+`extensions/exit` は `/quit` と同じ終了処理を `/exit` でも呼べるようにします。エージェントの実行中は、終わってから終了します。
+
+## あとから有効にする
+
+```sh
+mkdir -p ~/.pi/agent/extensions
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/extensions/usage ~/.pi/agent/extensions/usage
+ln -s /Users/peipou/Dev/hobby/katoline-org/pi-settings/extensions/exit ~/.pi/agent/extensions/exit
+```
+
+Pi を開き直すか `/reload` すると読み込まれます。
