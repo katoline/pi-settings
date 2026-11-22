@@ -23,7 +23,7 @@
 
 | # | ファイル | 内容 | 状態 | 依存 |
 | --- | --- | --- | --- | --- |
-| 0 | [phase-0-foundation.md](phase-0-foundation.md) | 開発の土台（依存・型チェック・lint・CI・テストの配置） | 未着手 | — |
+| 0 | [phase-0-foundation.md](phase-0-foundation.md) | 開発の土台（依存・型チェック・lint・CI・テストの配置） | 完了（2026-11-22） | — |
 | 1 | [phase-1-guards.md](phase-1-guards.md) | ガード（シェル解析・git・削除・インストール・秘密情報・出力の秘匿） | 未着手 | 0 |
 | 2 | [phase-2-instructions-output.md](phase-2-instructions-output.md) | 固定の指示（`<harness>` セクション）と完了の合図 | 未着手 | 1 |
 | 3 | [phase-3-models-subagents.md](phase-3-models-subagents.md) | モデル選択とサブエージェント | 未着手 | 2 |

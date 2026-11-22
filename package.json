@@ -4,12 +4,29 @@
   "private": true,
   "type": "module",
   "description": "Personal Pi coding agent settings and extensions",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "check": "biome check . && tsc --noEmit && node --test 'tests/**/*.test.ts'",
+    "format": "biome check --write .",
+    "test": "node --test 'tests/**/*.test.ts'"
+  },
   "pi": {
     "extensions": [
       "./agent/extensions/usage/index.ts",
       "./agent/extensions/exit/index.ts",
       "./agent/extensions/git-guard/index.ts"
     ],
-    "skills": ["./agent/skills"]
+    "skills": [
+      "./agent/skills"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.7",
+    "@earendil-works/pi-coding-agent": "1.5.2",
+    "@types/node": "26.6.6",
+    "typebox": "1.4.6",
+    "typescript": "7.0.2"
   }
 }

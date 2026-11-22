@@ -39,7 +39,7 @@ img,canvas{display:block;max-width:none;border:1px solid var(--line);background:
 </head>
 <body>
 <header>
-  <h1 id="title"></h1>
+  <h1 id="title">画面比較</h1>
   <div class="meta" id="meta"></div>
   <details id="files"><summary></summary><ul></ul></details>
 </header>
@@ -117,8 +117,8 @@ let token = 0;
 async function render() {
   const t = ++token;
   const it = DATA.items[cur];
-  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.i === cur)));
-  document.querySelectorAll('.mode').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+  document.querySelectorAll('.tab').forEach((b) => { b.setAttribute('aria-selected', String(+b.dataset.i === cur)); });
+  document.querySelectorAll('.mode').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.m === mode)); });
   $('opacityRow').hidden = mode !== 'overlay';
   $('legend').hidden = mode !== 'diff';
   const stage = $('stage'); stage.replaceChildren();
