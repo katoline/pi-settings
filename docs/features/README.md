@@ -8,6 +8,7 @@
 
 | 機能 | ファイル | 種類 | 置き場所 |
 | --- | --- | --- | --- |
+| ハーネスの計画・自律ループ・検証・独立レビュー | [harness-flow.md](harness-flow.md) | 拡張（フェーズ 4） | `agent/extensions/harness/flow/` |
 | ハーネスのガード | [harness-guards.md](harness-guards.md) | 拡張（ガード。ほかの機能はフェーズ 3 以降で追加） | `agent/extensions/harness/guards/` |
 | 利用状況（usage） | [usage.md](usage.md) | 拡張 | `agent/extensions/usage/` |
 | /exit | [exit.md](exit.md) | 拡張 | `agent/extensions/exit/` |
