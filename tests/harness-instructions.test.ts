@@ -7,14 +7,14 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadInstructions } from "../agent/extensions/harness/instructions/load.ts";
 import { registerInstructions } from "../agent/extensions/harness/instructions/register.ts";
 import type { Runtime } from "../agent/extensions/harness/lib/runtime.ts";
-import { config, HOME } from "./harness-helpers.ts";
+import { runtime } from "./harness-helpers.ts";
 
 type Handler = (event: object, ctx: object) => Promise<unknown>;
 
 function setup(isSubagent: boolean, dir?: string) {
   const handlers = new Map<string, Handler>();
   const pi = { on: (name: string, h: Handler) => handlers.set(name, h) } as unknown as ExtensionAPI;
-  const rt: Runtime = { config, isSubagent, home: HOME, tmpdir: "/tmp" };
+  const rt: Runtime = runtime({ isSubagent });
   registerInstructions(pi, rt, dir);
   return handlers;
 }
@@ -41,17 +41,25 @@ test("main.md は、まだ無いもの（worktree の節・計画やレビュー
   const main = loadInstructions("main");
   assert.doesNotMatch(main, /作業用worktree/);
   assert.doesNotMatch(main, /完了の合図/);
-  for (const name of [
-    "plan_",
-    "ask_user",
-    "harness_verify",
-    "harness_review",
-    "harness_pr_",
-    "subagent`",
-  ]) {
+  for (const name of ["plan_", "ask_user", "harness_verify", "harness_review", "harness_pr_"]) {
     assert.ok(!main.includes(name), name);
   }
   assert.match(main, /自分で判断したこと/);
+});
+
+test("main.md は、subagent ツールの使い方（役割・自己完結した依頼・書き込み可は 1 件ずつ・子ができないこと）を書く", () => {
+  const main = loadInstructions("main");
+  assert.match(main, /# サブエージェント/);
+  assert.ok(main.includes("`subagent`"));
+  for (const role of ["scout", "planner", "reviewer", "worker"])
+    assert.ok(main.includes(role), role);
+  assert.match(main, /自己完結/);
+  assert.match(main, /1 件ずつ順番/);
+  assert.match(main, /同じファイルを複数の依頼で編集させない/);
+  assert.match(main, /質問・commit・push・PR・マージができない/);
+  assert.match(main, /自分で確かめてから完了/);
+  // 独立レビューの節（pi --print）は、フェーズ 4 まで変えない
+  assert.match(main, /pi --print --no-session --tools read,grep,find,ls/);
 });
 
 test("指示ファイルが読めなければ、例外を出さず、差し込まない", async () => {

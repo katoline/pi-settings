@@ -3,5 +3,12 @@
   "tempRoots": ["$TMPDIR", "/tmp/claude-*", "/tmp/pi-*"],
   "protectedGlobalPaths": ["~/Dev/seino914/dotfiles"],
   "protectedHarnessPaths": ["~/.pi/agent"],
-  "defaultBranches": ["main", "master"]
+  "defaultBranches": ["main", "master"],
+  "selectModelOnStartup": false,
+  "subagent": {
+    "maxTasks": 8,
+    "maxConcurrency": 4,
+    "timeoutSeconds": 900,
+    "maxTotal": 64
+  }
 }

@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Runtime } from "../lib/runtime.ts";
+import { hasSuccessfulWrite } from "../subagent/child.ts";
 import { withFinalLine } from "./final-line.ts";
 
 /** 成功すると成果物ができるツール */
@@ -9,7 +10,7 @@ const ARTIFACT_COMMAND = /\b(?:git\s+(?:-C\s+\S+\s+)?(?:commit|push)|gh\s+pr\s+c
 
 /**
  * 作業が完了したら、最終応答の最後の 1 行を「🚀作業が完了しました！」にする。
- * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、commit、push、PR の作成）が成功したこと。
+ * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、書き込み可のサブエージェントの成功、commit、push、PR の作成）が成功したこと。
  * モデルの書き忘れには頼らず、確定したメッセージを、ハーネスが書き換える。
  */
 export function registerOutput(pi: ExtensionAPI, rt: Runtime): void {
@@ -38,6 +39,9 @@ export function registerOutput(pi: ExtensionAPI, rt: Runtime): void {
     if (event.isError || !call) return;
     if (ARTIFACT_TOOLS.has(call.toolName)) touched = true;
     else if (call.toolName === "bash" && ARTIFACT_COMMAND.test(call.command)) touched = true;
+    // subagent は、書き込み可の役割の依頼が 1 件以上成功したときだけ（結果の details で判定する）
+    else if (call.toolName === "subagent" && hasSuccessfulWrite(event.result?.details))
+      touched = true;
   });
 
   pi.on("message_end", async (event) => {

@@ -1,4 +1,12 @@
 {
+  "enabledModels": [
+    "opencode-go/*",
+    "anthropic/claude-opus-5-5",
+    "anthropic/claude-sonnet-5-5",
+    "anthropic/claude-fable-5-2",
+    "anthropic/claude-haiku-5-5",
+    "openai-codex/*"
+  ],
   "lastChangelogVersion": "1.5.2",
   "defaultProvider": "opencode-go",
   "defaultModel": "deepseek-v4.1-flash"

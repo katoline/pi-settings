@@ -4,7 +4,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Runtime } from "../agent/extensions/harness/lib/runtime.ts";
 import { FINAL_LINE, withFinalLine } from "../agent/extensions/harness/output/final-line.ts";
 import { registerOutput } from "../agent/extensions/harness/output/register.ts";
-import { config, HOME } from "./harness-helpers.ts";
+import { runtime } from "./harness-helpers.ts";
 
 type Block = { type: string; text?: string };
 type Msg = { role: string; content: Block[]; stopReason?: string };
@@ -64,7 +64,7 @@ test("最後のテキストのブロックだけを書き換え、ほかは保�
 function setup(isSubagent = false) {
   const handlers = new Map<string, Handler>();
   const pi = { on: (name: string, h: Handler) => handlers.set(name, h) } as unknown as ExtensionAPI;
-  const rt: Runtime = { config, isSubagent, home: HOME, tmpdir: "/tmp" };
+  const rt: Runtime = runtime({ isSubagent });
   registerOutput(pi, rt);
   const call = (name: string, event: object) => handlers.get(name)?.(event, {});
   let seq = 0;
@@ -75,10 +75,10 @@ function setup(isSubagent = false) {
     input: (streamingBehavior?: string) =>
       call("input", { type: "input", text: "x", source: "interactive", streamingBehavior }),
     /** 実際の pi と同じく、start には args があり、end には無い */
-    tool: async (toolName: string, args: object = {}, isError = false) => {
+    tool: async (toolName: string, args: object = {}, isError = false, result?: object) => {
       const toolCallId = `c${++seq}`;
       await call("tool_execution_start", { toolCallId, toolName, args });
-      await call("tool_execution_end", { toolCallId, toolName, isError });
+      await call("tool_execution_end", { toolCallId, toolName, isError, result });
     },
     end: (m: Msg) => call("message_end", { message: m }) as Promise<{ message: Msg } | undefined>,
   };
@@ -166,4 +166,38 @@ test("custom メッセージによる実行の開始ではリセットしない"
   await h.tool("write");
   await h.startCustom();
   assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+});
+
+const child = (over: object) => ({
+  agent: "a",
+  title: "t",
+  model: "m",
+  output: "",
+  exitCode: 0,
+  stderr: "",
+  usage: { turns: 1, input: 0, output: 0, cost: 0 },
+  aborted: false,
+  timedOut: false,
+  writable: false,
+  ...over,
+});
+const subagentResult = (...rs: object[]) => ({ content: [], details: rs.map(child) });
+
+test("書き込み可のサブエージェントの依頼が成功したら付く", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("subagent", {}, false, subagentResult({ writable: false }, { writable: true }));
+  assert.ok(finalText(await h.end(msg())).endsWith(FINAL_LINE));
+});
+
+test("読み取り専用だけ・書き込み可でも失敗・isError・details なしのサブエージェントでは付かない", async () => {
+  const h = setup();
+  await h.start();
+  await h.tool("subagent", {}, false, subagentResult({ writable: false }));
+  await h.tool("subagent", {}, false, subagentResult({ writable: true, exitCode: 1 }));
+  await h.tool("subagent", {}, false, subagentResult({ writable: true, timedOut: true }));
+  await h.tool("subagent", {}, true, subagentResult({ writable: true }));
+  await h.tool("subagent", {}, false, { content: [], details: undefined }); // 上限超過などの断り
+  await h.tool("subagent", {}, false); // 結果なし
+  assert.equal(await h.end(msg("答え")), undefined);
 });
