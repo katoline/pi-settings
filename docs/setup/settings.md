@@ -16,6 +16,7 @@ pi のユーザー設定。`agent/settings.json` に置き、`~/.pi/agent/settin
 | `lastChangelogVersion` | `1.5.2` | 最後に変更履歴を表示した pi の版（pi が書く） |
 | `defaultProvider` | `opencode-go` | 起動時のプロバイダー（モデルを切り替えると pi が書き換える） |
 | `defaultModel` | `deepseek-v4.1-flash` | 起動時のモデル（同上） |
+| `enabledModels` | `opencode-go/*`・Anthropic の 4 モデル（`claude-opus-5-5`・`claude-sonnet-5-5`・`claude-fable-5-2`・`claude-haiku-5-5`）・`openai-codex/*` | pi の `/model` などで選べるモデルを、Go・Anthropic の 4 モデル・Codex に絞る。ハーネスの `/models` はこれと別に、認証が済んだモデルを 3 グループに分けて出す（[features/harness-models-subagents.md](../features/harness-models-subagents.md)） |
 
 ## pi が書き換える場面
 
@@ -25,6 +26,16 @@ pi のユーザー設定。`agent/settings.json` に置き、`~/.pi/agent/settin
 
 pi はロックを取ってから `writeFileSync` でリンク先に書き込む（`settings-manager.js` で確認）。リンクは壊れない。ロックファイルは `~/.pi/agent` 側にできる。
 
-## 足す予定
+## ハーネスの設定（harness.json）
 
-- `enabledModels`（使えるモデルを Go・Anthropic の 4 モデル・Codex に絞る）：[plan/phase-3-models-subagents.md](../plan/phase-3-models-subagents.md)
+`settings.json` とは別に、ハーネスの設定を `~/.pi/agent/harness.json`（`PI_CODING_AGENT_DIR` の下）で上書きできる。フェーズ 3 で足したキー：
+
+| キー | 既定 | 意味 |
+| --- | --- | --- |
+| `selectModelOnStartup` | `false` | 起動時にメインのモデルを選ぶダイアログを出す。確認ダイアログを増やさないため既定は無効（`/models` で選ぶ） |
+| `subagent.maxTasks` | 8 | 1 回の呼び出しで任せられる件数（`subagent` ツールの引数スキーマの上限もこの値から作る） |
+| `subagent.maxConcurrency` | 4 | 読み取り専用の役割を同時に動かす数 |
+| `subagent.timeoutSeconds` | 900 | 1 件あたりの時間切れ |
+| `subagent.maxTotal` | 64 | このセッションで起動できる合計（再開・`/reload`・フォークでも、セッションの枝に残る結果から数え直す） |
+
+型が違う値（boolean でない・正の整数でない）は無視して既定を使う。

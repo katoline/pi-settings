@@ -16,12 +16,14 @@
 | `extensions` | `agent/extensions`（ディレクトリごと） | 2026-11-22 |
 | `skills` | `agent/skills`（ディレクトリごと） | 2026-11-22 |
 | `settings.json` | `agent/settings.json` | 2026-11-22 |
+| `agents` | `agent/agents`（ディレクトリごと。サブエージェントの役割の定義） | 2026-11-23 |
 
 ```sh
 R=/Users/peipou/Dev/hobby/katoline-org/pi-settings
 ln -s $R/agent/extensions ~/.pi/agent/extensions
 ln -s $R/agent/skills ~/.pi/agent/skills
 ln -s $R/agent/settings.json ~/.pi/agent/settings.json
+ln -s $R/agent/agents ~/.pi/agent/agents
 ```
 
 ## 廃止したリンク
