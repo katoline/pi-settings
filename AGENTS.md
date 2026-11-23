@@ -10,6 +10,8 @@ Pi coding agent の個人設定と拡張を置くリポジトリ。このファ�
 - `agent/extensions/<名前>/index.ts`：Pi 拡張（自動で読み込まれる）。追加・削除したら `package.json` の `pi.extensions` を合わせる。判定などの純粋ロジックは別ファイルに分け、`tests/*.test.ts` でテストする（テストは拡張のディレクトリではなく `tests/` に置く）。`harness` 拡張（ガード・固定の指示・完了の合図・モデル選択・サブエージェント・計画と自律ループと検証と独立レビュー・PR・利用状況・要約）は `guards/`・`instructions/`・`output/`・`models/`・`subagent/`・`flow/`・`usage/`・`compaction/`・`lib/` などのサブディレクトリに分けている。`flow/`・`usage/`・`compaction/` はメインだけに登録する（サブエージェントには登録しない）
 - `agent/agents/<役割>.md`：サブエージェントの役割の定義（`harness` 拡張の `subagent` ツールが `~/.pi/agent/agents/` から読む。`name`・`description`・`tools` の先頭部と本文）
 - `agent/skills/<名前>/SKILL.md`：Pi のスキル
+- `agent/skills/nix-setup/`：TypeScript プロジェクトの開発環境を生成するスキル（`scripts/setup.mjs` と `templates/`。生成内容は Claude Code 側の nix-setup に合わせる）
+- `scripts/install.sh`：`agent/` を `~/.pi/agent`（`PI_CODING_AGENT_DIR` で変更可）へリンクで配置する（`--dry-run`・冪等・競合は上書きせず exit 1）。リンクの種類を変えたら `docs/setup/linking.md` とテストも直す
 - `agent/settings.json`：Pi のユーザー設定。Pi 自身も書き換える（モデルの切り替えなど）ので、その差分は意図したものだけコミットする
 - `agent/extensions/harness/instructions/main.md`・`agent/extensions/harness/flow/pr-tools.ts`（PR の作成・マージのツール）・`agent/extensions/harness/guards`（ガード）は同じ運用（作業ごとに PR を自動作成し、マージは依頼されたときだけ）を支えるので、どれかを変えたら他との食い違いを確認する
 
