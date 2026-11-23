@@ -30,7 +30,7 @@
 | 4 | [phase-4-plan-loop-verify-review.md](phase-4-plan-loop-verify-review.md) | 計画・自律ループ・検証・独立レビュー・完了報告 | 完了（2026-11-23） | 3 |
 | 5 | [phase-5-pr-tools.md](phase-5-pr-tools.md) | PR の作成・依頼ゲートつきマージ | 完了（2026-11-23） | 4 |
 | 6 | [phase-6-usage-compaction.md](phase-6-usage-compaction.md) | 利用状況の統合と要約（compaction） | 完了（2026-11-23） | 3 |
-| 7 | [phase-7-install-skills-docs.md](phase-7-install-skills-docs.md) | 配置スクリプト・nix-setup スキル・README・e2e | 未着手 | 5, 6 |
+| 7 | [phase-7-install-skills-docs.md](phase-7-install-skills-docs.md) | 配置スクリプト・nix-setup スキル・README・e2e | 完了（2026-11-23） | 5, 6 |
 
 ## フェーズ外の作業
 

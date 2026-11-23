@@ -1,0 +1,16 @@
+name: CI
+on:
+  push:
+    branches: [__BRANCH__]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - run: nix develop -c __INSTALL__
+      - run: nix develop -c __PM__ run lint
+      # - run: nix develop -c __PM__ test

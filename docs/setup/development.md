@@ -29,6 +29,16 @@
 
 テストは `tests/` に集める（`tests/harness-usage.test.ts`・`tests/harness-*.test.ts`）。拡張の純粋ロジック（`parse.ts`・`guards/*.ts`・`lib/*.ts` など）を `../agent/extensions/<名前>/` から import する。
 
+## テストの種類
+
+- ユニットテスト：拡張の純粋ロジック。`tests/harness-*.test.ts`
+- 配置スクリプト：`tests/install.test.ts`（`scripts/install.sh` の `--dry-run`・冪等・競合・警告。一時ディレクトリの `PI_CODING_AGENT_DIR` に配置する）
+- nix-setup スキル：`tests/nix-setup.test.ts`（`setup.mjs` の生成物・判定・上書きしないこと）
+- e2e（実際の pi 1.5.2 を RPC モードで起動し、偽のモデルの台本で確かめる）
+  - `tests/harness-e2e-flow.test.ts`・`tests/harness-e2e-subagent.test.ts`：ガード・計画・ループ・サブエージェント・最終行の通し
+  - `tests/harness-e2e-install.test.ts`：`install.sh` で配置したリンクから拡張が読み込まれ、`/models`・`/subagent-model`・`/plan`・`/usage`・`/exit` が登録されること（`get_commands` で確認）。ネットワークと実際の `~/.pi` は使わない
+  - 共通の部品は `tests/harness-e2e-helpers.ts`
+
 ## CI
 
 `.github/workflows/ci.yml`。main への push と PR で、Nix をインストールし、`nix develop -c npm ci --ignore-scripts` と `nix develop -c npm run check` を実行する。
