@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseRef } from "../models/catalog.ts";
 
 export interface HarnessConfig {
   /** 削除・書き込みを許す作業ルート */
@@ -16,6 +17,8 @@ export interface HarnessConfig {
   defaultBranches: string[];
   /** 起動時にメインのモデルを選ぶダイアログを出す（既定 false。`/models` で選ぶ） */
   selectModelOnStartup: boolean;
+  /** 要約（compaction）に使うモデル（`provider/id`）。空なら今のモデル */
+  compactionModel: string;
   subagent: SubagentLimits;
   flow: FlowLimits;
 }
@@ -99,6 +102,9 @@ export function loadConfig(
         }
         if (typeof o.selectModelOnStartup === "boolean") {
           merged.selectModelOnStartup = o.selectModelOnStartup;
+        }
+        if (typeof o.compactionModel === "string" && parseRef(o.compactionModel.trim())) {
+          merged.compactionModel = o.compactionModel.trim();
         }
         if (o.subagent && typeof o.subagent === "object") {
           const sub = o.subagent as Record<string, unknown>;

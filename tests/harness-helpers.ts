@@ -18,6 +18,7 @@ export const config: HarnessConfig = {
   protectedHarnessPaths: [`${HOME}/.pi/agent`],
   defaultBranches: ["main", "master"],
   selectModelOnStartup: false,
+  compactionModel: "",
   subagent: { maxTasks: 8, maxConcurrency: 4, timeoutSeconds: 900, maxTotal: 64 },
   flow: { maxCyclesPerItem: 3, maxContinuations: 200, maxMinutes: 240, maxNoProgress: 3 },
 };

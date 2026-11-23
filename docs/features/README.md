@@ -10,7 +10,8 @@
 | --- | --- | --- | --- |
 | ハーネスの計画・自律ループ・検証・独立レビュー | [harness-flow.md](harness-flow.md) | 拡張（フェーズ 4） | `agent/extensions/harness/flow/` |
 | ハーネスのガード | [harness-guards.md](harness-guards.md) | 拡張（ガード。ほかの機能はフェーズ 3 以降で追加） | `agent/extensions/harness/guards/` |
-| 利用状況（usage） | [usage.md](usage.md) | 拡張 | `agent/extensions/usage/` |
+| 利用状況（usage） | [usage.md](usage.md) | 拡張（フェーズ 6 でハーネスに統合。サブエージェントの費用つき） | `agent/extensions/harness/usage/` |
+| 要約（compaction） | [harness-compaction.md](harness-compaction.md) | 拡張（フェーズ 6。`session_before_compact`） | `agent/extensions/harness/compaction/` |
 | /exit | [exit.md](exit.md) | 拡張 | `agent/extensions/exit/` |
 | PR の作成・依頼ゲートつきマージ | [harness-pr.md](harness-pr.md) | 拡張（フェーズ 5。`harness_pr_create`・`harness_pr_merge`） | `agent/extensions/harness/flow/pr.ts`・`pr-tools.ts`・`tools.ts` |
 | git-pull スキル | [git-pull-skill.md](git-pull-skill.md) | スキル（`/skill:git-pull` でのみ起動） | `agent/skills/git-pull/` |

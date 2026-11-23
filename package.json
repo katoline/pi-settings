@@ -14,7 +14,6 @@
   },
   "pi": {
     "extensions": [
-      "./agent/extensions/usage/index.ts",
       "./agent/extensions/exit/index.ts",
       "./agent/extensions/harness/index.ts"
     ],

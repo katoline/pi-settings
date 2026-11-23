@@ -5,6 +5,7 @@
   "protectedHarnessPaths": ["~/.pi/agent"],
   "defaultBranches": ["main", "master"],
   "selectModelOnStartup": false,
+  "compactionModel": "",
   "subagent": {
     "maxTasks": 8,
     "maxConcurrency": 4,

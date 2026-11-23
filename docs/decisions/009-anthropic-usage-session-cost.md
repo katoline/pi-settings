@@ -32,3 +32,4 @@
 ## 関連
 
 - [features/usage.md](../features/usage.md)
+- サブエージェントの費用の合算と、`usage` のハーネスへの統合（フェーズ 6、2026-11-23）：[plan/phase-6-usage-compaction.md](../plan/phase-6-usage-compaction.md)。本文の `agent/extensions/usage/` は、当時の置き場所（今は `agent/extensions/harness/usage/`）

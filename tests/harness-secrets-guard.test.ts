@@ -147,7 +147,7 @@ test("ソースコードは秘匿しない（read した内容が化けて edit 
 
 test("このリポジトリのソースを読んでも、秘匿で内容が変わらない", () => {
   for (const f of [
-    "agent/extensions/usage/index.ts",
+    "agent/extensions/harness/usage/register.ts",
     "agent/extensions/harness/guards/secrets.ts",
   ]) {
     const text = readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
