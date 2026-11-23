@@ -7,7 +7,8 @@
 ## 関連
 
 - 決定：[001](../decisions/001-agent-dir-mirrors-pi.md)、[008](../decisions/008-link-settings-json.md)
-- スクリプト化の予定：[plan/phase-7-install-skills-docs.md](../plan/phase-7-install-skills-docs.md)
+- 配置スクリプト：`scripts/install.sh`（[plan/phase-7-install-skills-docs.md](../plan/phase-7-install-skills-docs.md)）
+- テスト：`tests/install.test.ts`・`tests/harness-e2e-install.test.ts`
 
 ## 張っているリンク（2026-11-23 時点）
 
@@ -18,17 +19,22 @@
 | `settings.json` | `agent/settings.json` | 2026-11-22 |
 | `agents` | `agent/agents`（ディレクトリごと。サブエージェントの役割の定義） | 2026-11-23 |
 
+## install.sh の使い方
+
 ```sh
-R=/Users/peipou/Dev/hobby/katoline-org/pi-settings
-ln -s $R/agent/extensions ~/.pi/agent/extensions
-ln -s $R/agent/skills ~/.pi/agent/skills
-ln -s $R/agent/settings.json ~/.pi/agent/settings.json
-ln -s $R/agent/agents ~/.pi/agent/agents
+scripts/install.sh --dry-run   # 何も変えず、何をするかを表示する
+scripts/install.sh             # 配置する
 ```
+
+- 配置先は `${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}`。上の 4 つのリンクを張る（無ければ配置先のディレクトリも作る）
+- 冪等：既に正しいリンクなら「済み」と表示して何もしない。何度実行しても同じ結果になる
+- 競合：同じ名前のファイル・ディレクトリ・別の場所へのリンクがあれば、上書きせず「競合」と表示してその 1 件を飛ばし、残りは続けて、最後に exit 1 で終わる。内容を確認して、手で移してから再実行する
+- 引数が不明なら、使い方を表示して exit 2
+- `AGENTS.md` が残っていれば警告だけする（下の「廃止したリンク」）
 
 ## 廃止したリンク
 
-- `AGENTS.md`（`agent/AGENTS.md`）：フェーズ 2 で廃止した（2026-11-23）。指示は拡張 `harness` が `<harness>` セクションで渡す（[features/harness-instructions.md](../features/harness-instructions.md)）。残っていると同じ指示が二重に入るので、削除する（リンクだけを消す。リポジトリ側のファイルは既に無い）：
+- `AGENTS.md`（`agent/AGENTS.md`）：フェーズ 2 で廃止した（2026-11-23）。指示は拡張 `harness` が `<harness>` セクションで渡す（[features/harness-instructions.md](../features/harness-instructions.md)）。残っていると同じ指示が二重に入るので、削除する（リンクだけを消す。リポジトリ側のファイルは既に無い）。`install.sh` は残っていれば警告するが、消さない：
 
 ```sh
 rm ~/.pi/agent/AGENTS.md
