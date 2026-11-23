@@ -17,7 +17,9 @@
 | [007](007-no-auto-branch-protection.md) | GitHub のブランチ保護は pi に作らせない | 有効 | 2026-11-22 |
 | [008](008-link-settings-json.md) | `settings.json` もリポジトリで管理してリンクする | 有効 | 2026-11-22 |
 | [009](009-anthropic-usage-session-cost.md) | Anthropic はセッションの使用額を表示する（残高は出さない） | 有効 | 2026-11-22 |
-| [010](010-voice-input-own-extension.md) | Mac の音声入力は自前の拡張で作る（別途、個別に進める） | 計画中 | 2026-11-22 |
+| [010](010-voice-input-own-extension.md) | Mac の音声入力は自前の拡張で作る（別途、個別に進める） | 計画中（保留） | 2026-11-22 |
+| [013](013-plan-and-review-opus.md) | 設計・計画（planner）とレビュー（reviewer）のサブエージェントは Claude Opus 5.5 で動かす | 有効 | 2026-11-23 |
+| [014](014-no-sandbox.md) | sandbox は作らない（要らないと判断）。候補を記録 | 見送り | 2026-11-23 |
 | [011](011-no-worktree.md) | pi では worktree を使わない | 有効 | 2026-11-23 |
 | [012](012-merge-gate-without-plan.md) | 計画が無いときも確認ダイアログでマージを判断し、マージ後にブランチを消さない | 有効 | 2026-11-23 |
 

@@ -4,7 +4,15 @@
  * ネットワークは使わない。
  */
 import { spawn } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import os from "node:os";
@@ -163,8 +171,15 @@ export async function scenarioIn(
     path.join(agentDir, "harness.json"),
     JSON.stringify({ selectModelOnStartup: false }),
   );
-  // 役割の定義は、エージェントディレクトリの agents/ から読まれる（リポジトリの agent/agents/ をコピー）
-  cpSync(path.join(root, "agent/agents"), path.join(agentDir, "agents"), { recursive: true });
+  // 役割の定義は、エージェントディレクトリの agents/ から読まれる（リポジトリの agent/agents/ をコピー）。
+  // 役割ごとの model（reviewer の Opus など）は、偽のモデルしか無いこの環境では使えないので外し、
+  // 子も偽のモデル（下の環境変数 PI_SUBAGENT_MODEL）で動かす
+  const agentsDir = path.join(agentDir, "agents");
+  cpSync(path.join(root, "agent/agents"), agentsDir, { recursive: true });
+  for (const f of readdirSync(agentsDir).filter((n) => n.endsWith(".md"))) {
+    const file = path.join(agentsDir, f);
+    writeFileSync(file, readFileSync(file, "utf8").replace(/^model:.*\n/m, ""));
+  }
   options.prepare?.({ cwd, agentDir });
 
   const proc = spawn(

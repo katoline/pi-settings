@@ -37,7 +37,8 @@
 | ファイル | 内容 | 状態 |
 | --- | --- | --- |
 | — | Anthropic のセッション使用額を `usage` 拡張に追加（[009](../decisions/009-anthropic-usage-session-cost.md)） | 実装済み（2026-11-22） |
-| [voice-input.md](voice-input.md) | Mac の音声入力（別途、個別に進める） | 計画のみ |
+| [voice-input.md](voice-input.md) | Mac の音声入力（別途、個別に進める） | 保留（2026-11-23） |
+| — | sandbox（[014](../decisions/014-no-sandbox.md)） | 見送り（2026-11-23） |
 
 ## 進め方
 

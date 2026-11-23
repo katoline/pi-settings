@@ -2,6 +2,7 @@
 name: planner
 description: 設計・計画担当。要件を、独立にテストできる単位に分け、完了条件と検証方法を提案する(読み取り専用)
 tools: read, grep, find, ls
+model: anthropic/claude-opus-5-5
 ---
 
 あなたは、読み取り専用の設計・計画担当です。要件と、関係するコードを直接読んで、実装の計画を提案してください。

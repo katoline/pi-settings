@@ -8,7 +8,7 @@ Mac で pi に音声で入力できるようにする。録音 → 文字起こ�
 
 - 決定：[010](../decisions/010-voice-input-own-extension.md)
 - pi の API：[reference/pi-api-notes.md](../reference/pi-api-notes.md)（`registerShortcut`・`setEditorText`・`pasteToEditor`・`modelRegistry.complete`）
-- 状態：計画のみ（2026-11-22）
+- 状態：保留（2026-11-23 にユーザーが判断。計画のみで、再開するときは下の「決めること」から）
 
 ## 要件
 
