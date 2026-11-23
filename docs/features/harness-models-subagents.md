@@ -61,8 +61,8 @@ pi --mode json -p --no-session --no-extensions -e <harness の index.ts> --no-mc
 | 役割 | 内容 | `tools` |
 | --- | --- | --- |
 | `scout` | 調査。関係するパス・依存・慣習・リスクを返す | `read, grep, find, ls`（読み取り専用） |
-| `planner` | 計画。独立にテストできる単位への分割と完了条件を提案する | 同上 |
-| `reviewer` | 独立レビュー。最終行に `<approved/>` か `<disapproved/>` を返す。メインが `harness_review` で、差分と要件だけを渡して呼ぶ（[harness-flow.md](harness-flow.md)） | 同上 |
+| `planner` | 計画。独立にテストできる単位への分割と完了条件を提案する。モデルは `/subagent-model` によらず Claude Opus 5.5（[決定 013](../decisions/013-plan-and-review-opus.md)） | 同上 |
+| `reviewer` | 独立レビュー。最終行に `<approved/>` か `<disapproved/>` を返す。メインが `harness_review` で、差分と要件だけを渡して呼ぶ（[harness-flow.md](harness-flow.md)）。モデルは `/subagent-model` によらず Claude Opus 5.5（`model: anthropic/claude-opus-5-5`。[決定 013](../decisions/013-plan-and-review-opus.md)） | 同上 |
 | `worker` | 実装・検証 | 未指定（既定のツール。書き込み可） |
 
 ## 書き込み可の役割の直列化
@@ -84,7 +84,7 @@ worktree で隔離しないため、同じ作業ツリーに複数の子が同�
 
 ## 既知の制約
 
-- 別プロセス方式は暫定（移植元でも同じ）
+- 別プロセス方式は、pi に同梱の公式の例（`examples/extensions/subagent`）と同じ作り。pi 本体は、方針としてサブエージェントを持たない（README に「sub-agents や plan mode は入れない。拡張やパッケージで作る」とある。1.5.2・1.6.0 で確認、2026-11-23）。本体に入ったら乗り換えを検討する
 - 書き込み可の直列化は 1 回の呼び出しの中だけ。`subagent` ツールの呼び出し自体は順番に実行される（`executionMode: "sequential"`）ので、呼び出しをまたいで書き込み可が重なることはない。メインが同時に `edit` などで同じファイルを編集することは防がない（指示で、同じファイルを任せない分け方にする）
 - 子のガードはメインと同じ拡張で、サブエージェントでは commit・push・PR・マージ・`git worktree` を拒否する。それ以外の書き込みは、作業ルートなどのガードの範囲で許される
 - 役割の `model` を指定すると `/subagent-model` より優先する
