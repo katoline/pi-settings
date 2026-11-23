@@ -157,3 +157,15 @@ test("loadConfig を重ねて呼んでも、flow の上書きは持ち越さな�
   assert.equal(loadConfig("/Users/u", f, {}).flow.maxNoProgress, 9);
   assert.equal(loadConfig("/Users/u", path.join(tmp, "none.json"), {}).flow.maxNoProgress, 3);
 });
+
+test("compactionModel は既定で空。provider/id の形の文字列だけ上書きでき、壊れた値は無視する", () => {
+  assert.equal(loadConfig("/Users/u", path.join(tmp, "none.json"), {}).compactionModel, "");
+  const ok = path.join(tmp, "cm-ok.json");
+  writeFileSync(ok, JSON.stringify({ compactionModel: "opencode-go/deepseek-v4.1-flash" }));
+  assert.equal(loadConfig("/Users/u", ok, {}).compactionModel, "opencode-go/deepseek-v4.1-flash");
+  for (const bad of ["nomodel", "a/", "/b", 1, null, ["a/b"]]) {
+    const f = path.join(tmp, "cm-bad.json");
+    writeFileSync(f, JSON.stringify({ compactionModel: bad }));
+    assert.equal(loadConfig("/Users/u", f, {}).compactionModel, "", String(bad));
+  }
+});

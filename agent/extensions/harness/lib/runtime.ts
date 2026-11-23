@@ -21,7 +21,7 @@ export interface Runtime {
   subagentModelDefault: string;
   /** このセッションで起動したサブエージェントの数（上限の判定用） */
   subagentSpawns: number;
-  /** サブエージェントの費用の合計（ドル。表示はフェーズ 6） */
+  /** サブエージェントの費用の合計（ドル）。要約の記録に使う（フッターと /usage の費用は usage/children.ts がエントリから数える） */
   childCost: number;
   /** 確定した（または提案中の）計画。セッションのエントリに保存し、復元する */
   plan: Plan | undefined;

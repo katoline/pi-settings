@@ -195,8 +195,16 @@ export function formatAnthropicStatus(cost: number): string {
   return `Anthropic このセッション ${formatUsd(cost)}`;
 }
 
-export function formatAnthropicDetail(cost: number): string {
-  return `Anthropic API: このセッション ${formatUsd(cost)}（pi の見積もり。残高と請求額は Console で確認）`;
+/**
+ * `/usage` の Anthropic の行。`cost` は、プロバイダーが anthropic のサブエージェントの費用（`subagentCost`）を含んだ額。
+ * 同じ額がサブエージェントの行の内訳にも出るので、子の分があれば「うちサブエージェント」として示す（足すと二重になる）。
+ */
+export function formatAnthropicDetail(cost: number, subagentCost = 0): string {
+  const children =
+    Number.isFinite(subagentCost) && subagentCost > 0
+      ? `うちサブエージェント ${formatUsd(subagentCost)}。`
+      : "";
+  return `Anthropic API: このセッション ${formatUsd(cost)}（${children}pi の見積もり。残高と請求額は Console で確認）`;
 }
 
 export function formatGoStatus(windows: UsageWindow[]): string {

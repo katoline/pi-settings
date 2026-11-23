@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { Runtime } from "../lib/runtime.ts";
+import { formatSubagentDetail, type SubagentCosts, subagentCosts } from "./children.ts";
 import {
   formatAnthropicDetail,
   formatAnthropicStatus,
@@ -24,7 +26,7 @@ const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 
 type ProviderName = "codex" | "go";
 
-type ProviderState<T> =
+export type ProviderState<T> =
   | { kind: "loading" }
   | { kind: "missing"; message: string }
   | { kind: "error"; message: string }
@@ -123,6 +125,12 @@ function httpMessage(status: number | "timeout" | "failed"): string {
   return `HTTP ${status}`;
 }
 
+/** Codex・Go の利用状況の取得。テストでは外部 API を呼ばないよう差し替える */
+export interface UsageLoaders {
+  loadCodex: (ctx: ExtensionContext, signal: AbortSignal) => Promise<ProviderState<UsageWindow[]>>;
+  loadGo: (ctx: ExtensionContext, signal: AbortSignal) => Promise<ProviderState<UsageWindow[]>>;
+}
+
 async function loadCodex(
   ctx: ExtensionContext,
   signal: AbortSignal,
@@ -211,7 +219,12 @@ function formatWindowDetail(window: UsageWindow, now: number): string {
   return `${window.label} ${formatPercent(window.usedPercent)} used${reset ? ` · ${reset}` : ""}${limited}`;
 }
 
-function formatDetails(state: UsageState, anthropicCost: number, now = Date.now()): string {
+function formatDetails(
+  state: UsageState,
+  anthropicCost: number,
+  children: SubagentCosts,
+  now = Date.now(),
+): string {
   const lines = ["Usage"];
   const add = (title: string, state: ProviderState<UsageWindow[]>) => {
     if (state.kind === "loading") lines.push(`${title}: loading`);
@@ -223,30 +236,54 @@ function formatDetails(state: UsageState, anthropicCost: number, now = Date.now(
   };
   add("Codex", state.codex);
   add("Go", state.go);
-  lines.push(formatAnthropicDetail(anthropicCost));
+  lines.push(formatAnthropicDetail(anthropicCost, children.byProvider.anthropic?.cost ?? 0));
+  lines.push(formatSubagentDetail(children));
   return lines.join("\n");
 }
 
-export default function usageExtension(pi: ExtensionAPI): void {
+/**
+ * 利用状況（フッターと /usage）。サブエージェント（PI_SUBAGENT=1）は子のフッターが見えないので登録しない。
+ * 子のプロセスは `--no-extensions` で、ハーネスだけを読み込む。
+ * `loaders` は Codex・Go の取得の差し替え（テスト用。省略時は外部 API から取る）。
+ */
+export function registerUsage(
+  pi: ExtensionAPI,
+  rt: Runtime,
+  loaders: Partial<UsageLoaders> = {},
+): void {
+  if (rt.isSubagent) return;
+  const load: UsageLoaders = { loadCodex, loadGo, ...loaders };
   let alive = false;
   let state: UsageState = { ...INITIAL_STATE };
   let timer: ReturnType<typeof setInterval> | undefined;
   const lastFetch: Record<ProviderName, number> = { codex: 0, go: 0 };
   const inflight = new Map<ProviderName, { controller: AbortController; promise: Promise<void> }>();
 
-  // このセッションで Anthropic に使った額（USD）。取得できなければ 0。
-  // /tree で戻っても捨てた分岐の分は課金済みなので、今の分岐（getBranch）ではなく全エントリを合計する（pi 本体のフッターと同じ）
-  const anthropicCost = (ctx: ExtensionContext): number => {
+  // サブエージェント（subagent・harness_review の子）の費用。全エントリから数える（捨てた分岐の分も課金済み）
+  const childCosts = (ctx: ExtensionContext): SubagentCosts => {
     try {
-      return sumProviderCost(ctx.sessionManager.getEntries());
+      return subagentCosts(ctx.sessionManager.getEntries());
     } catch {
-      return 0;
+      return subagentCosts([]);
     }
+  };
+
+  // このセッションで Anthropic に使った額（USD）。取得できなければ 0。親のメッセージに、プロバイダーが anthropic の子の費用を足す。
+  // /tree で戻っても捨てた分岐の分は課金済みなので、今の分岐（getBranch）ではなく全エントリを合計する（pi 本体のフッターと同じ）
+  const anthropicCost = (ctx: ExtensionContext, children: SubagentCosts): number => {
+    let own = 0;
+    try {
+      own = sumProviderCost(ctx.sessionManager.getEntries());
+    } catch {
+      own = 0;
+    }
+    return own + (children.byProvider.anthropic?.cost ?? 0);
   };
 
   const render = (ctx: ExtensionContext): void => {
     if (!alive || ctx.hasUI === false) return;
-    const cost = ctx.model?.provider === "anthropic" ? anthropicCost(ctx) : undefined;
+    const cost =
+      ctx.model?.provider === "anthropic" ? anthropicCost(ctx, childCosts(ctx)) : undefined;
     ctx.ui.setStatus(STATUS_KEY, formatStatus(state, cost));
   };
 
@@ -280,8 +317,8 @@ export default function usageExtension(pi: ExtensionAPI): void {
       jobs.push(promise);
     };
 
-    schedule("codex", FAST_REFRESH_MS, loadCodex);
-    schedule("go", FAST_REFRESH_MS, loadGo);
+    schedule("codex", FAST_REFRESH_MS, load.loadCodex);
+    schedule("go", FAST_REFRESH_MS, load.loadGo);
     await Promise.all(jobs);
   };
 
@@ -335,7 +372,8 @@ export default function usageExtension(pi: ExtensionAPI): void {
       while (inflight.size > 0) {
         await Promise.all([...inflight.values()].map((entry) => entry.promise));
       }
-      ctx.ui.notify(formatDetails(state, anthropicCost(ctx)), "info");
+      const children = childCosts(ctx);
+      ctx.ui.notify(formatDetails(state, anthropicCost(ctx, children), children), "info");
     },
   });
 }
