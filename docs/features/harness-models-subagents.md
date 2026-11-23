@@ -76,7 +76,7 @@ worktree で隔離しないため、同じ作業ツリーに複数の子が同�
 
 ## 費用の集計
 
-子の `message_end` の `usage.cost` を `ChildResult.usage` に集め、終了ごとに `Runtime.childCost`（サブエージェントの費用の合計）に足す。件数と同じく、`session_start`・`session_tree` でセッションの枝の `subagent` の結果（各要素の `usage.cost` の合計）から数え直す。表示はフェーズ 6（利用状況に足す）。
+子の `message_end` の `usage.cost` を `ChildResult.usage` に集め、終了ごとに `Runtime.childCost`（サブエージェントの費用の合計）に足す。件数と同じく、`session_start`・`session_tree` でセッションの枝の `subagent` の結果（各要素の `usage.cost` の合計）から数え直す。`Runtime.childCost` は、要約（compaction）のハーネスの記録に使う（[harness-compaction.md](harness-compaction.md)）。フッターと `/usage` の表示は `Runtime.childCost` を使わず、`usage/children.ts` でセッションの全エントリ（捨てた分岐も含む）から、プロバイダーごとに数える（[usage.md](usage.md)）。
 
 ## 完了の合図との関係
 

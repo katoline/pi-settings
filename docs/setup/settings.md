@@ -49,4 +49,10 @@ pi はロックを取ってから `writeFileSync` でリンク先に書き込む
 
 キルスイッチは設定ではなく、ファイル `~/.pi/agent/harness-off`（`PI_CODING_AGENT_DIR` の下）。ある間は自律ループが継続しない。
 
+フェーズ 6 で足したキー（[features/harness-compaction.md](../features/harness-compaction.md)）：
+
+| キー | 既定 | 意味 |
+| --- | --- | --- |
+| `compactionModel` | `""` | 要約（compaction）に使うモデル（`provider/id`、例 `opencode-go/deepseek-v4.1-flash`）。空なら今のモデル。`provider/id` の形でない文字列・文字列でない値は無視して既定（空） |
+
 型が違う値（boolean でない・正の整数でない）は無視して既定を使う。`subagent`・`flow` は、キーごとに正の整数だけ採用する。

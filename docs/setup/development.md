@@ -27,7 +27,7 @@
 
 ## テストの置き場所
 
-テストは `tests/` に集める（`tests/usage.test.ts`・`tests/harness-*.test.ts`）。拡張の純粋ロジック（`parse.ts`・`guards/*.ts`・`lib/*.ts` など）を `../agent/extensions/<名前>/` から import する。
+テストは `tests/` に集める（`tests/harness-usage.test.ts`・`tests/harness-*.test.ts`）。拡張の純粋ロジック（`parse.ts`・`guards/*.ts`・`lib/*.ts` など）を `../agent/extensions/<名前>/` から import する。
 
 ## CI
 
