@@ -1,3 +1,4 @@
+import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
@@ -6,6 +7,7 @@ import type {
 import type { Runtime } from "../lib/runtime.ts";
 import { latestCustomEntry } from "../lib/state.ts";
 import { groupModels, type ModelRef, parseRef, refToString, SUBAGENT_DEFAULT } from "./catalog.ts";
+import { parseEffort, sortEfforts } from "./effort.ts";
 
 const SUBAGENT_MODEL_ENTRY = "harness-subagent-model";
 
@@ -65,6 +67,42 @@ export function registerModels(pi: ExtensionAPI, rt: Runtime): void {
       const direct = args.trim() ? parseRef(args.trim()) : null;
       const ref = direct ?? (await pickModel(ctx, "メインのモデル"));
       if (ref) await setMain(ref, ctx);
+    },
+  });
+
+  pi.registerCommand("effort", {
+    description:
+      "メインのモデルのエフォート(思考レベル)を設定する。対応するレベルはモデルで変わる(例: /effort high)",
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
+      const model = ctx.model;
+      if (!model) {
+        ctx.ui.notify("モデルが選ばれていません。先に `/models` で選んでください。", "warning");
+        return;
+      }
+      const supported = sortEfforts(getSupportedThinkingLevels(model));
+      const current = pi.getThinkingLevel();
+      let level: string | undefined;
+      if (args.trim()) {
+        const parsed = parseEffort(args, supported);
+        if (!parsed.ok) {
+          ctx.ui.notify(parsed.message, "error");
+          return;
+        }
+        level = parsed.level;
+      } else {
+        if (supported.length <= 1) {
+          ctx.ui.notify(`${model.id} はエフォートを変えられません(現在: ${current})。`, "warning");
+          return;
+        }
+        const labels = new Map(supported.map((l) => [l === current ? `${l} (現在)` : l, l]));
+        const picked = await ctx.ui.select(`エフォート(${model.id}。現在: ${current})`, [
+          ...labels.keys(),
+        ]);
+        level = labels.get(picked ?? "");
+        if (!level) return;
+      }
+      pi.setThinkingLevel(level as ReturnType<typeof pi.getThinkingLevel>);
+      ctx.ui.notify(`エフォート: ${pi.getThinkingLevel()}(${model.id})`, "info");
     },
   });
 

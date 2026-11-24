@@ -13,11 +13,12 @@
 | 利用状況（usage） | [usage.md](usage.md) | 拡張（フェーズ 6 でハーネスに統合。サブエージェントの費用つき） | `agent/extensions/harness/usage/` |
 | 要約（compaction） | [harness-compaction.md](harness-compaction.md) | 拡張（フェーズ 6。`session_before_compact`） | `agent/extensions/harness/compaction/` |
 | /exit | [exit.md](exit.md) | 拡張 | `agent/extensions/exit/` |
+| /clear | [clear.md](clear.md) | 拡張 | `agent/extensions/clear/` |
 | PR の作成・依頼ゲートつきマージ | [harness-pr.md](harness-pr.md) | 拡張（フェーズ 5。`harness_pr_create`・`harness_pr_merge`） | `agent/extensions/harness/flow/pr.ts`・`pr-tools.ts`・`tools.ts` |
 | git-pull スキル | [git-pull-skill.md](git-pull-skill.md) | スキル（`/skill:git-pull` でのみ起動） | `agent/skills/git-pull/` |
 | ui-compare スキル | [ui-compare-skill.md](ui-compare-skill.md) | スキル（`/skill:ui-compare` でのみ起動） | `agent/skills/ui-compare/` |
 | nix-setup スキル | [nix-setup.md](nix-setup.md) | スキル（Nix の devShell・Biome・CI などを生成） | `agent/skills/nix-setup/` |
-| モデル選択とサブエージェント | [harness-models-subagents.md](harness-models-subagents.md) | 拡張（`/models`・`/subagent-model`・`subagent` ツール）と役割の定義 | `agent/extensions/harness/models/`・`subagent/`・`agent/agents/` |
+| モデル選択とサブエージェント | [harness-models-subagents.md](harness-models-subagents.md) | 拡張（`/models`・`/subagent-model`・`/effort`・`subagent` ツール）と役割の定義 | `agent/extensions/harness/models/`・`subagent/`・`agent/agents/` |
 | ハーネスの固定の指示と完了の合図 | [harness-instructions.md](harness-instructions.md) | 拡張（`<harness>` セクションへの差し込み） | `agent/extensions/harness/instructions/`・`output/` |
 
 配置スクリプト `scripts/install.sh` の仕様は [setup/linking.md](../setup/linking.md) に書く（機能ではなく環境の設定のため）。

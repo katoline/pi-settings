@@ -137,11 +137,11 @@ test("install.sh で配置したエージェントディレクトリから、拡
 
   const extensionCommands = commands.filter((c) => c.source === "extension");
   const names = extensionCommands.map((c) => c.name);
-  for (const name of ["models", "subagent-model", "plan", "usage", "exit"]) {
+  for (const name of ["models", "subagent-model", "effort", "plan", "usage", "exit", "clear"]) {
     assert.ok(names.includes(name), `/${name} が登録されているはず（実際: ${names.join(", ")}）`);
   }
   // 読み込み元は、配置したリンク（agentDir/extensions 経由）であって、-e の指定ではない
-  for (const name of ["models", "subagent-model", "plan", "usage", "exit"]) {
+  for (const name of ["models", "subagent-model", "effort", "plan", "usage", "exit", "clear"]) {
     const p = extensionCommands.find((c) => c.name === name)?.sourceInfo?.path ?? "";
     assert.ok(
       p.startsWith(path.join(agentDir, "extensions")) ||

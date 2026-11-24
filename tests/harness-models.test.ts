@@ -244,3 +244,119 @@ test("起動時の選択: selectModelOnStartup が true で、startup・new で�
     assert.deepEqual(s.mainModels, []); // キャンセルしたので変えない
   }
 });
+
+import { parseEffort, sortEfforts } from "../agent/extensions/harness/models/effort.ts";
+
+test("エフォート: 対応するレベルだけ受け付け、大文字小文字は区別しない", () => {
+  const supported = ["off", "low", "medium", "high"];
+  assert.deepEqual(parseEffort(" HIGH ", supported), { ok: true, level: "high" });
+  const unsupported = parseEffort("max", supported);
+  assert.equal(unsupported.ok, false);
+  assert.match(unsupported.ok ? "" : unsupported.message, /対応していません.*off \/ low/);
+  const unknown = parseEffort("ultra", supported);
+  assert.equal(unknown.ok, false);
+  assert.match(unknown.ok ? "" : unknown.message, /不明なエフォート/);
+  assert.equal(parseEffort("", supported).ok, false);
+});
+
+test("エフォート: 選択肢は弱い順にそろえる", () => {
+  assert.deepEqual(sortEfforts(["max", "low", "off", "xhigh", "other"]), [
+    "off",
+    "low",
+    "xhigh",
+    "max",
+  ]);
+});
+
+/** `/effort` 用の偽物。ctx.model は Anthropic 風(reasoning あり、xhigh・max に対応、off は不可) */
+function setupEffort(model: unknown, picked?: string) {
+  const commands = new Map<string, Command>();
+  const set: string[] = [];
+  let level = "medium";
+  const pi = {
+    on: () => {},
+    registerCommand: (name: string, c: Command) => commands.set(name, c),
+    getThinkingLevel: () => level,
+    setThinkingLevel: (l: string) => {
+      set.push(l);
+      level = l;
+    },
+  } as unknown as ExtensionAPI;
+  registerModels(pi, runtime());
+  const notes: { text: string; level: string }[] = [];
+  const selects: { title: string; items: string[] }[] = [];
+  const ctx = {
+    model,
+    ui: {
+      notify: (text: string, lv: string) => notes.push({ text, level: lv }),
+      select: async (title: string, items: string[]) => {
+        selects.push({ title, items });
+        return picked === undefined ? undefined : items.find((i) => i.startsWith(picked));
+      },
+    },
+  };
+  const run = (args: string) => (commands.get("effort") as Command).handler(args, ctx);
+  return { run, set, notes, selects };
+}
+
+const reasoningModel = {
+  id: "claude-opus-5-5",
+  provider: "anthropic",
+  reasoning: true,
+  thinkingLevelMap: { off: null, xhigh: "xhigh", max: "max" },
+};
+
+test("/effort <level>: 対応するレベルを設定し、反映後の値を通知する", async () => {
+  const s = setupEffort(reasoningModel);
+  await s.run("max");
+  assert.deepEqual(s.set, ["max"]);
+  assert.equal(s.notes.at(-1)?.level, "info");
+  assert.match(s.notes.at(-1)?.text ?? "", /エフォート: max/);
+});
+
+test("/effort <level>: 非対応・不明な値は、変えずに error で通知する", async () => {
+  const s = setupEffort(reasoningModel);
+  await s.run("off"); // thinkingLevelMap で off は null(非対応)
+  await s.run("ultra");
+  assert.deepEqual(s.set, []);
+  assert.deepEqual(
+    s.notes.map((n) => n.level),
+    ["error", "error"],
+  );
+});
+
+test("/effort: 引数なしは、対応するレベルを現在値つきで選ばせる", async () => {
+  const s = setupEffort(reasoningModel, "high");
+  await s.run("");
+  assert.deepEqual(s.selects[0]?.items, [
+    "minimal",
+    "low",
+    "medium (現在)",
+    "high",
+    "xhigh",
+    "max",
+  ]);
+  assert.deepEqual(s.set, ["high"]);
+});
+
+test("/effort: 選択をキャンセルしたら変えない", async () => {
+  const s = setupEffort(reasoningModel);
+  await s.run("");
+  assert.deepEqual(s.set, []);
+  assert.deepEqual(s.notes, []);
+});
+
+test("/effort: モデル未選択・reasoning 非対応は、変えずに warning で通知する", async () => {
+  const none = setupEffort(undefined);
+  await none.run("high");
+  assert.deepEqual(none.set, []);
+  assert.equal(none.notes[0]?.level, "warning");
+
+  const plain = setupEffort({ id: "plain", provider: "x", reasoning: false });
+  await plain.run("");
+  assert.deepEqual(plain.set, []);
+  assert.equal(plain.notes[0]?.level, "warning");
+  await plain.run("high");
+  assert.deepEqual(plain.set, []);
+  assert.equal(plain.notes[1]?.level, "error");
+});
