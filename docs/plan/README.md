@@ -39,6 +39,7 @@
 | — | Anthropic のセッション使用額を `usage` 拡張に追加（[009](../decisions/009-anthropic-usage-session-cost.md)） | 実装済み（2026-11-22） |
 | [voice-input.md](voice-input.md) | Mac の音声入力（別途、個別に進める） | 保留（2026-11-23） |
 | — | sandbox（[014](../decisions/014-no-sandbox.md)） | 見送り（2026-11-23） |
+| [auto-resume.md](auto-resume.md) | Codex・OpenCode Go のレート制限で止まった作業を、上限の復活後に自動で再開する | 未着手（2026-11-23） |
 
 ## 進め方
 
