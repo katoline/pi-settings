@@ -36,7 +36,7 @@
 - nix-setup スキル：`tests/nix-setup.test.ts`（`setup.mjs` の生成物・判定・上書きしないこと）
 - e2e（実際の pi 1.5.2 を RPC モードで起動し、偽のモデルの台本で確かめる）
   - `tests/harness-e2e-flow.test.ts`・`tests/harness-e2e-subagent.test.ts`：ガード・計画・ループ・サブエージェント・最終行の通し
-  - `tests/harness-e2e-install.test.ts`：`install.sh` で配置したリンクから拡張が読み込まれ、`/models`・`/subagent-model`・`/plan`・`/usage`・`/exit` が登録されること（`get_commands` で確認）。ネットワークと実際の `~/.pi` は使わない
+  - `tests/harness-e2e-install.test.ts`：`install.sh` で配置したリンクから拡張が読み込まれ、`/models`・`/subagent-model`・`/effort`・`/plan`・`/usage`・`/exit`・`/clear` が登録されること（`get_commands` で確認）。ネットワークと実際の `~/.pi` は使わない
   - 共通の部品は `tests/harness-e2e-helpers.ts`
 
 ## CI

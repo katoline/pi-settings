@@ -20,6 +20,7 @@
 | --- | --- |
 | `/models` | メインのモデルを、プロバイダー → モデルの 2 段階で選ぶ。グループは OpenCode Go（`opencode-go` の全モデル）、Anthropic API（`claude-opus-5-5`・`claude-sonnet-5-5`・`claude-fable-5-2`・`claude-haiku-5-5`）、Codex（`openai-codex`、または ChatGPT でサインインした `openai`）。認証が済んでいないグループは出ない。`/models <provider>/<id>` で直接指定もできる |
 | `/subagent-model` | サブエージェントのモデルを、同じ 2 段階で選ぶ。`/subagent-model <provider>/<id>` で直接指定、`reset` で既定に戻す。直接指定は `/models` と同じく、モデルが見つからない・認証が未設定（`getAvailable` に無い）・`provider/id` の形でないときは、保存せずにエラーで通知する。引数なしでキャンセルすると現在のモデルを表示する。選んだモデルは `pi.appendEntry` でセッションに保存し、`session_start`・`session_tree` で復元する |
+| `/effort` | メインのモデルのエフォート（pi の思考レベル）を設定する。`/effort <level>` で直接指定（`off`・`minimal`・`low`・`medium`・`high`・`xhigh`・`max`。大文字小文字は区別しない）、引数なしなら現在のモデルが対応するレベルを現在値つきで選ぶ。対応するレベルは pi-ai の `getSupportedThinkingLevels`（モデルの `reasoning`・`thinkingLevelMap`）で決まり、Anthropic API・OpenCode Go・Codex のどれでも同じように使える。対応しないレベル・不明な値は、pi の `setThinkingLevel` のように黙って丸めず、設定せずにエラーで通知する。モデル未選択・エフォートを変えられないモデル（`reasoning` なし）は警告。変更は `pi.setThinkingLevel` なのでそのセッションに記録・復元され、新しいセッションの既定は変えない（既定は `/thinking` で `Ctrl+S`）。純粋ロジックは `models/effort.ts`（`parseEffort`・`sortEfforts`） |
 
 - サブエージェントの既定は `opencode-go/deepseek-v4.1-flash`。環境変数 `PI_SUBAGENT_MODEL`（`provider/id` の形）で上書きできる
 - 起動時のメインのモデル選択は、設定 `selectModelOnStartup` が `true` のときだけ（既定 `false`。確認ダイアログを増やさないため）。再開・リロード・フォークでは出ない
