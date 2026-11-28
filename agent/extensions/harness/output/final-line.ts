@@ -1,4 +1,4 @@
-export const FINAL_LINE = "🚀作業が完了しました！";
+export const FINAL_LINE = "## ✅ 作業完了";
 
 interface TextBlock {
   type: "text";
