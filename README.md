@@ -9,7 +9,7 @@ pi coding agent（`@earendil-works/pi-coding-agent` 1.5.2）の個人設定と�
 | 機能 | 内容 | 詳細 |
 | --- | --- | --- |
 | ガード | 既定ブランチへの commit・push、force push、`--no-verify`、履歴を壊す git 操作、プロジェクト外へのインストール、範囲外の削除、秘密情報の読み取りを、確認ダイアログなしで止めます。出力のトークン類は `[秘匿]` にします | [harness-guards.md](docs/features/harness-guards.md) |
-| 固定の指示と完了の合図 | 作業の約束事を、どのディレクトリでもシステムプロンプトに差し込みます。成果物を作った依頼の最後に「🚀作業が完了しました！」を書き足します | [harness-instructions.md](docs/features/harness-instructions.md) |
+| 固定の指示と完了の合図 | 作業の約束事を、どのディレクトリでもシステムプロンプトに差し込みます。成果物を作った依頼の最後に「## ✅ 作業完了」を書き足します | [harness-instructions.md](docs/features/harness-instructions.md) |
 | モデル選択とサブエージェント | `/models`・`/subagent-model` でモデルを選び、`/effort` でエフォート（思考レベル）を設定し、`subagent` ツールで別の pi プロセスに作業を任せます | [harness-models-subagents.md](docs/features/harness-models-subagents.md) |
 | 計画と自律ループ | ファイルを変更する依頼を、完了条件つきの計画にして確定してから、完了まで質問せずに進めます。`/plan` で状況の確認・再開・停止・破棄ができます | [harness-flow.md](docs/features/harness-flow.md) |
 | 検証と独立レビュー | 完了は、根拠・検証（`harness_verify`）・独立レビュー（`harness_review`）で判定し、完了報告を作ります | [harness-flow.md](docs/features/harness-flow.md) |

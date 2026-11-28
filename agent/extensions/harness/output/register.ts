@@ -10,7 +10,7 @@ const ARTIFACT_TOOLS = new Set(["write", "edit", "harness_pr_create", "harness_p
 const ARTIFACT_COMMAND = /\b(?:git\s+(?:-C\s+\S+\s+)?(?:commit|push))\b/;
 
 /**
- * 作業が完了したら、最終応答の最後の 1 行を「🚀作業が完了しました！」にする。
+ * 作業が完了したら、最終応答の最後の 1 行を「## ✅ 作業完了」にする。
  * 「完了」は、その依頼の中で成果物を作る操作（ファイルの変更、書き込み可のサブエージェントの成功、commit、push、`harness_pr_create`・`harness_pr_merge` の成功）が成功したこと、
  * またはその依頼の中で計画の完了報告（`plan_report`）を出したこと。
  * ただし、確定した計画を自律で進めている間（未完了で、一時停止していない）は付けない。
